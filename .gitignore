@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+artifacts/
+# Third-party engines fetched by windows/build/fetch-deps.ps1
+windows/deps/
+__pycache__/

@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- CA1859 (prefer concrete collection types) fights with the interfaces used across the API;
+         CA1848/CA1873 (LoggerMessage delegates) only matter for hot-path logging, which we do not have. -->
+    <NoWarn>$(NoWarn);CA1859;CA1848;CA1873</NoWarn>
+    <!-- Lets the Windows projects compile (not run) on Linux/macOS CI and dev machines. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Version>1.0.0</Version>
+    <Company>Agamemnon contributors</Company>
+    <Product>Agamemnon</Product>
+    <Copyright>Copyright © Agamemnon contributors. Licensed under GPL-2.0.</Copyright>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Agamemnon-Intelligence/Agamemnon-Windows</RepositoryUrl>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

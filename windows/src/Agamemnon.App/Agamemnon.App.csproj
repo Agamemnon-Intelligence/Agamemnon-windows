@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <!-- NotifyIcon for the notification-area (tray) icon. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Agamemnon.App</RootNamespace>
+    <AssemblyName>Agamemnon</AssemblyName>
+    <ApplicationIcon>Assets\agamemnon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- System.Drawing/WinForms and WPF both define some type names; we import neither globally. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- WPF takes per-monitor DPI awareness from app.manifest; the WinForms analyzer doesn't know that. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Agamemnon.Core/Agamemnon.Core.csproj" />
+    <ProjectReference Include="../Agamemnon.Platform.Windows/Agamemnon.Platform.Windows.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\agamemnon.ico" />
+    <Resource Include="Assets\agamemnon-256.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Bundled YARA rules are installed next to the app (see installer). -->
+    <None Include="..\..\rules\**\*.yar" Link="rules\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

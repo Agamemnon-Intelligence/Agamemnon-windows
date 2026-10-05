@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Windows-only implementations of the Core abstractions: Authenticode, Mark-of-the-Web,
+       DPAPI, the system resolver, Wi-Fi, MSI/CAB unpacking, DNS configuration and the
+       administrator-rights monitor. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Agamemnon.Platform.Windows</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Diagnostics.EventLog" />
+    <PackageReference Include="System.Management" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <PackageReference Include="WixToolset.Dtf.Compression.Cab" />
+    <PackageReference Include="WixToolset.Dtf.WindowsInstaller" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Agamemnon.Core/Agamemnon.Core.csproj" />
+  </ItemGroup>
+</Project>

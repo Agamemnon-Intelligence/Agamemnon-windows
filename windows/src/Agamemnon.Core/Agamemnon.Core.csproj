@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Platform-neutral logic: DNS forwarding, scan orchestration, archive expansion, quarantine,
+       reputation clients and the service IPC contract. Unit-tested on any OS. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Agamemnon.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" />
+    <PackageReference Include="DiscUtils.Iso9660" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Agamemnon.Core.Tests" />
+  </ItemGroup>
+</Project>

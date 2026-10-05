@@ -1,0 +1,17 @@
+<Application x:Class="Agamemnon.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Agamemnon.App.Views"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Visible" />
+            <v:CollapsedWhenConverter x:Key="CollapsedWhen" />
+            <v:VisibleWhenConverter x:Key="VisibleWhen" />
+            <v:LevelBrushConverter x:Key="LevelBrush" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

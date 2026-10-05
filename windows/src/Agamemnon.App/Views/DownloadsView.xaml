@@ -1,0 +1,97 @@
+<UserControl x:Class="Agamemnon.App.Views.DownloadsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
+             xmlns:svc="clr-namespace:Agamemnon.App.Services">
+    <ScrollViewer Style="{StaticResource Page}">
+        <StackPanel MaxWidth="980" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleText}" Text="Downloads" />
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,20"
+                       Text="Every new file is scanned the moment your browser finishes saving it. Dangerous files go straight to quarantine." />
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding IsEnabled}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="Block unsafe downloads" Margin="0" />
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding CheckedText}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="Watched folders" />
+                    <ItemsControl ItemsSource="{Binding Folders}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:FolderRow}">
+                                <DockPanel Margin="0,2">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="Stop watching"
+                                            Visibility="{Binding CanRemove, Converter={StaticResource Visible}}"
+                                            Command="{Binding DataContext.RemoveFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                    <TextBlock Style="{StaticResource BodyText}" Text="{Binding Path}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Add folder…" Style="{StaticResource SecondaryButton}" Command="{Binding AddFolderCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="Unsigned programs from the internet" />
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,10"
+                               Text="Programs and installers that no publisher has signed. Lots of small open-source tools are unsigned, and so is lots of malware." />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="unsigned" Width="290" IsChecked="{Binding WarnUnsigned}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Warn me" />
+                                <TextBlock Style="{StaticResource CaptionText}" TextWrapping="Wrap" Text="Show a notification and leave the file where it is." />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="unsigned" Width="290" IsChecked="{Binding BlockUnsigned}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Block them" />
+                                <TextBlock Style="{StaticResource CaptionText}" TextWrapping="Wrap" Text="Quarantine them. You can restore any you trust." />
+                            </StackPanel>
+                        </RadioButton>
+                    </WrapPanel>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding CheckSource}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" Text="Check where files came from" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="Block files downloaded from sites on abuse.ch's URLhaus list of active malware hosts." />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="Recent downloads" />
+                    <ItemsControl ItemsSource="{Binding RecentDownloads}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type svc:ActivityEntry}">
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Style="{StaticResource StatusDot}" VerticalAlignment="Top" Margin="0,5,10,0"
+                                             Fill="{Binding Level, Converter={StaticResource LevelBrush}}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding Title}" />
+                                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding Detail}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Style="{StaticResource CaptionText}" Text="{Binding When}" Margin="12,2,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Agamemnon.App/Agamemnon.App.csproj" />
+    <Project Path="src/Agamemnon.Core/Agamemnon.Core.csproj" />
+    <Project Path="src/Agamemnon.Platform.Windows/Agamemnon.Platform.Windows.csproj" />
+    <Project Path="src/Agamemnon.Service/Agamemnon.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Agamemnon.Core.Tests/Agamemnon.Core.Tests.csproj" />
+  </Folder>
+</Solution>

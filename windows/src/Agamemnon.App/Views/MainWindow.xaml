@@ -1,0 +1,72 @@
+<Window x:Class="Agamemnon.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
+        xmlns:v="clr-namespace:Agamemnon.App.Views"
+        xmlns:svc="clr-namespace:Agamemnon.App.Services"
+        Title="Agamemnon" Width="1120" Height="760" MinWidth="880" MinHeight="600"
+        Icon="/Assets/agamemnon.ico"
+        Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontSizeBody}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><v:DashboardView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ScanViewModel}"><v:ScanView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DnsViewModel}"><v:DnsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DownloadsViewModel}"><v:DownloadsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:QuarantineViewModel}"><v:QuarantineView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:AboutViewModel}"><v:AboutView /></DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SidebarWidth}" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,22,20,24">
+                    <Image Source="/Assets/agamemnon-256.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="Agamemnon" Style="{StaticResource HeadingText}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Status, like the Mac menu bar item: protection and DNS -->
+                <StackPanel DockPanel.Dock="Bottom" Margin="20,12,20,20">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding ProtectionBrush}" />
+                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding ProtectionHeadline}" TextTrimming="CharacterEllipsis" MaxWidth="160" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding DnsBrush}" />
+                        <TextBlock Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" MaxWidth="160">
+                            <Run Text="DNS:" /> <Run Text="{Binding DnsSummary, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <Button Style="{StaticResource LinkButton}" Content="About Agamemnon" HorizontalAlignment="Left"
+                            Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.About}" />
+                </StackPanel>
+
+                <StackPanel x:Name="Navigation">
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE80F;" Content="Dashboard" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dashboard}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE721;" Content="Scan" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Scan}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="DNS" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dns}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE896;" Content="Downloads" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Downloads}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE72E;" Content="Quarantine" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Quarantine}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Settings" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Settings}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Focusable="False" />
+    </Grid>
+</Window>
