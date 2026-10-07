@@ -1,6 +1,8 @@
 # Agamemnon for Windows
 
-Agamemnon is an open-source antivirus app. It covers four areas:
+Agamemnon is an open-source antivirus app created by **mertyesileducation** and **mirazbakis** for research purposes.
+
+## General Features
 
 - encrypted DNS
 - malware scanning
@@ -33,17 +35,6 @@ the Mac app** (`design/`; the Mac app is
 | **Unsafe downloads** | Watches Downloads (plus folders you add). Each file is scanned once the browser finishes writing it, and threats go straight to the encrypted quarantine. | same |
 | | Optionally blocks unsigned programs from the internet, and files from hosts on abuse.ch's URLhaus list (read from the file's Mark-of-the-Web). | |
 | **Admin-rights warnings** | Notifies you when a program is elevated by UAC (prompt or silent auto-elevation) or installs a system service. The alert says who signed it and whether it is known malware. Windows' own components are not reported. | authorization-request alerts |
-
-### UI
-
-- Dark theme only.
-- Sidebar: Dashboard, Scan, DNS, Downloads, Quarantine, Settings. The About page credits
-  [github.com/mirazbakis](https://github.com/mirazbakis) and
-  [github.com/mertyesileducation](https://github.com/mertyesileducation).
-- The **notification-area (tray) icon** is the Windows counterpart of the menu bar icon:
-  - The shield's colour shows overall protection: green for protected, amber for warnings, red for threats.
-  - A dot shows that DNS is encrypted.
-  - Its menu shows protection and DNS status and can toggle DNS or start a quick scan.
 
 ## Shared design tokens
 
@@ -191,3 +182,5 @@ Bundled and used components:
 - WiX Toolset DTF (MS-RL)
 - CommunityToolkit.Mvvm (MIT)
 - MalwareBazaar and URLhaus are services of [abuse.ch](https://abuse.ch/).
+
+  **Copyright (c) 2026 mirazbakis and mertyesileducation**
