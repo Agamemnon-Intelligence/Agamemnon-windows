@@ -1,0 +1,23 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <!--
+    Agamemnon-<version>-Setup.exe: a WiX Burn bundle that installs the Agamemnon MSI.
+    Same per-machine install as running the MSI directly; offered for people who expect an .exe.
+  -->
+  <Bundle Name="Agamemnon"
+          Manufacturer="Agamemnon contributors"
+          Version="$(ProductVersion)"
+          UpgradeCode="DE002802-7B93-41DC-AB1B-78B4FA5194DB"
+          IconSourceFile="..\src\Agamemnon.App\Assets\agamemnon.ico"
+          AboutUrl="https://github.com/Agamemnon-Intelligence/Agamemnon-Windows"
+          HelpUrl="https://github.com/Agamemnon-Intelligence/Agamemnon-Windows">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          Theme="hyperlinkLicense"
+          LicenseUrl="https://github.com/Agamemnon-Intelligence/Agamemnon-Windows/blob/main/LICENSE" />
+    </BootstrapperApplication>
+    <Chain>
+      <MsiPackage SourceFile="$(MsiPath)" />
+    </Chain>
+  </Bundle>
+</Wix>

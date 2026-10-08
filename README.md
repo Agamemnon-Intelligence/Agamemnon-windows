@@ -145,11 +145,12 @@ The script:
 The GitHub Actions workflow (`.github/workflows/windows.yml`):
 
 - On every push and pull request: checks the design tokens, tests the YARA rules, and builds and tests the solution.
-- On a `v*` tag: builds the MSI and attaches it to that tag's GitHub Release (creating the release
+- On a `v*` tag: builds the MSI and `Agamemnon-<version>-Setup.exe` (a WiX bundle that installs the
+  MSI) and attaches both to that tag's GitHub Release (creating the release
   if needed). To sign it, set two repository secrets: `WINDOWS_SIGN_PFX_BASE64` (the base64-encoded
   .pfx) and `WINDOWS_SIGN_PASSWORD`.
 - Run manually (**Actions → Windows → Run workflow**) with a `release_tag` such as `v1.0.0` to build
-  the current branch and attach the MSI to that release.
+  the current branch and attach the installers to that release.
 
 ClamAV and YARA are pinned by URL and SHA-256 in `deps.json`; `fetch-deps.ps1` refuses unpinned
 downloads. When you bump a version, run it once with `-AllowUnpinned` on a trusted machine to print

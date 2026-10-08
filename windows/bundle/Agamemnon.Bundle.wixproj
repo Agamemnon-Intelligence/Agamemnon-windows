@@ -1,0 +1,21 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!-- Built on Windows only, after the MSI:
+         dotnet build bundle -c Release -p:MsiPath=<path to the .msi> -p:Version=1.2.3
+       build/package.ps1 builds the MSI and then this. -->
+  <PropertyGroup>
+    <OutputType>Bundle</OutputType>
+    <OutputName>Agamemnon-$(Version)-Setup</OutputName>
+    <DefineConstants>MsiPath=$(MsiPath);ProductVersion=$(Version)</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Bal.wxext" />
+  </ItemGroup>
+  <!-- Burn bundles are signed in two steps: the engine detached from the bundle, then the bundle itself.
+       WiX calls these targets with the files to sign; build/sign.ps1 skips signing without a certificate. -->
+  <Target Name="SignBundleEngine">
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)..\build\sign.ps1&quot; @(SignBundleEngine->'&quot;%(FullPath)&quot;', ' ')" />
+  </Target>
+  <Target Name="SignBundle">
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)..\build\sign.ps1&quot; @(SignBundle->'&quot;%(FullPath)&quot;', ' ')" />
+  </Target>
+</Project>

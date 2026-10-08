@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-  Builds the signed Agamemnon MSI.
+  Builds the signed Agamemnon MSI and setup .exe.
 
   1. Publishes the app and the service (self-contained, win-x64) into one folder.
   2. Adds the ClamAV and YARA engines (build/fetch-deps.ps1). The bundled YARA rules come
      with the app's publish output.
   3. Authenticode-signs Agamemnon's own executables and DLLs.
   4. Builds the MSI with WiX and signs it.
+  5. Wraps the MSI in Agamemnon-<version>-Setup.exe (WiX Burn bundle), also signed.
 
   Signing uses a code-signing certificate from a PFX file:
     $env:AGAMEMNON_SIGN_PFX      path to the .pfx
@@ -36,24 +37,18 @@ Copy-Item -Recurse (Join-Path $root 'deps\clamav') (Join-Path $publish 'engines\
 Copy-Item -Recurse (Join-Path $root 'deps\yara') (Join-Path $publish 'engines\yara')
 if (-not (Test-Path (Join-Path $publish 'rules\agamemnon-windows.yar'))) { throw 'bundled YARA rules missing from publish output' }
 
-function Invoke-Sign([string[]]$Files) {
-    if (-not $env:AGAMEMNON_SIGN_PFX) {
-        Write-Warning 'AGAMEMNON_SIGN_PFX not set: skipping Authenticode signing.'
-        return
-    }
-    $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
-        Sort-Object FullName -Descending | Select-Object -First 1
-    & $signtool.FullName sign /fd SHA256 /td SHA256 /tr 'http://timestamp.digicert.com' `
-        /f $env:AGAMEMNON_SIGN_PFX /p $env:AGAMEMNON_SIGN_PASSWORD /d 'Agamemnon' $Files
-    if ($LASTEXITCODE -ne 0) { throw 'signing failed' }
-}
-
-Invoke-Sign @(Get-ChildItem $publish -Filter 'Agamemnon*' -Include '*.exe', '*.dll' -Recurse | ForEach-Object FullName)
+$sign = Join-Path $PSScriptRoot 'sign.ps1'
+& $sign @(Get-ChildItem $publish -Filter 'Agamemnon*' -Include '*.exe', '*.dll' -Recurse | ForEach-Object FullName)
 
 dotnet build (Join-Path $root 'installer\Agamemnon.Installer.wixproj') -c Release `
     -p:Version=$Version -p:PublishDir="$publish\" -o $output
 if ($LASTEXITCODE -ne 0) { throw 'MSI build failed' }
 
 $msi = Join-Path $output "Agamemnon-$Version-x64.msi"
-Invoke-Sign @($msi)
+& $sign $msi
 Write-Host "Built $msi"
+
+dotnet build (Join-Path $root 'bundle\Agamemnon.Bundle.wixproj') -c Release `
+    -p:Version=$Version -p:MsiPath="$msi" -o $output
+if ($LASTEXITCODE -ne 0) { throw 'setup .exe build failed' }
+Write-Host "Built $(Join-Path $output "Agamemnon-$Version-Setup.exe")"

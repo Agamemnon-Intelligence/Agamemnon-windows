@@ -10,6 +10,7 @@
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
     <PackageVersion Include="WixToolset.Dtf.Compression.Cab" Version="5.0.2" />
     <PackageVersion Include="WixToolset.Dtf.WindowsInstaller" Version="5.0.2" />
+    <PackageVersion Include="WixToolset.Bal.wxext" Version="5.0.2" />
     <PackageVersion Include="WixToolset.UI.wixext" Version="5.0.2" />
     <PackageVersion Include="WixToolset.Util.wixext" Version="5.0.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
