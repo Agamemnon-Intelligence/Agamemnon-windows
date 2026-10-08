@@ -2,14 +2,14 @@
   "$comment": "Third-party engines bundled into the installer. Pin every sha256 before a release: build/fetch-deps.ps1 refuses unpinned downloads unless run with -AllowUnpinned, which prints the hash to pin.",
   "clamav": {
     "version": "1.4.3",
-    "url": "https://www.clamav.net/downloads/production/clamav-1.4.3.win.x64.zip",
-    "sha256": "",
+    "url": "https://github.com/Cisco-Talos/clamav/releases/download/clamav-1.4.3/clamav-1.4.3.win.x64.zip",
+    "sha256": "5c86a6ed17e45e5c14c9c7c7b58cfaabcdee55a195991439bb6b6c6618827e6c",
     "target": "engines/clamav"
   },
   "yara": {
-    "version": "4.5.4",
-    "url": "https://github.com/VirusTotal/yara/releases/download/v4.5.4/yara-v4.5.4-2326-win64.zip",
-    "sha256": "",
+    "version": "4.5.2",
+    "url": "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip",
+    "sha256": "9f934cc4c5de653324a5714736077f57667a06009bee7984d960634ae0662dc6",
     "target": "engines/yara"
   }
 }

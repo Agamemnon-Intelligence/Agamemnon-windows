@@ -8,9 +8,14 @@
     <InstallerPlatform>x64</InstallerPlatform>
     <DefineConstants>PublishDir=$(PublishDir);ProductVersion=$(Version)</DefineConstants>
     <SuppressValidation>false</SuppressValidation>
+    <!-- ICE38/43/57: the package is perMachine, so ProgramMenuFolder is the all-users Start menu and an
+         HKLM key path is right; these ICEs assume a per-user profile folder.
+         ICE60: some bundled third-party DLLs carry a version but no language.
+         ICE69: the shortcut targets Agamemnon.exe from another component in the same feature. -->
+    <SuppressIces>ICE38;ICE43;ICE57;ICE60;ICE69</SuppressIces>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
-    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" />
+    <PackageReference Include="WixToolset.UI.wixext" />
   </ItemGroup>
 </Project>

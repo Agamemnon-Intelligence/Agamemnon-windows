@@ -24,7 +24,8 @@ public sealed class TempDir : IDisposable
 
     public string File(string name, byte[] content)
     {
-        string full = System.IO.Path.Combine(Path, name);
+        // GetFullPath turns '/' into the platform separator, so callers can compare paths.
+        string full = System.IO.Path.GetFullPath(System.IO.Path.Combine(Path, name));
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(full)!);
         System.IO.File.WriteAllBytes(full, content);
         return full;

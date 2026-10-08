@@ -68,6 +68,7 @@
         <Exclude Files="$(PublishDir)Agamemnon.exe" />
         <Exclude Files="$(PublishDir)Agamemnon.Service.exe" />
         <Exclude Files="$(PublishDir)**\*.pdb" />
+        <Exclude Files="$(PublishDir)**\*.lib" />
       </Files>
       <Component Id="AgamemnonApp">
         <File Id="AgamemnonExe" Source="$(PublishDir)Agamemnon.exe" KeyPath="yes" />
