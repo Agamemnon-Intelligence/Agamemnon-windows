@@ -18,6 +18,12 @@ public static class AgamemnonPaths
 
     public static string ClamAvData => Path.Combine(MachineData, "ClamAV");
 
+    /// <summary>
+    /// Offline malware hash databases (%ProgramData%\Agamemnon\ThreatIntel): written by the scan
+    /// engine service, readable by every user (the hash lists are public data).
+    /// </summary>
+    public static string ThreatIntelData => Path.Combine(MachineData, "ThreatIntel");
+
     /// <summary>Per-user settings (%APPDATA%\Agamemnon).</summary>
     public static string UserSettings =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Agamemnon");

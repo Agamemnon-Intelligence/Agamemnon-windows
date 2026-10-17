@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using Agamemnon.App.Services;
+using Agamemnon.Core.Intelligence;
 using Agamemnon.Core.Ipc;
 using Agamemnon.Core.Scanning;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -250,9 +251,12 @@ public sealed partial class MainViewModel : ObservableObject
         while (!cancellationToken.IsCancellationRequested)
         {
             EngineStatus status = await _services.ClamAv.GetStatusAsync(cancellationToken).ConfigureAwait(false);
+            await _services.ThreatDatabase.GetStatusAsync(cancellationToken).ConfigureAwait(false);
+            ThreatCoverage coverage = ThreatCoverage.From(_services.ThreatDatabase.Manifest, _services.Yara.CountRules());
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 Dashboard.EngineText = status.Description;
+                Dashboard.Coverage = coverage;
                 if (ScanEngineAvailable != status.Available)
                 {
                     ScanEngineAvailable = status.Available;

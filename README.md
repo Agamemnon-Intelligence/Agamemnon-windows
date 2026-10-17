@@ -5,7 +5,7 @@ Agamemnon is an open-source antivirus app created by **mertyesileducation** and 
 ## General Features
 
 - encrypted DNS
-- malware scanning
+- malware scanning against **more than 50 million known threats** (new in 2.0)
 - archive and installer scanning
 - blocking unsafe downloads
 
@@ -27,6 +27,7 @@ the Mac app** (`design/`; the Mac app is
 | | Rules: turn DNS off on chosen Wi-Fi networks; exclude domains (sent to the network's own resolver through NRPT rules or the local resolver). | same |
 | | Live status, a leak test (which resolvers really answer, and which network owns them), and one-click on/off from the window or the tray icon. | same |
 | **Malware scanning** | ClamAV signatures, updated every 2 hours by `freshclam`. | same |
+| | **Offline threat database (2.0):** every file is checked against VirusShare's MD5 lists and abuse.ch MalwareBazaar's full SHA-256 export, tens of millions of known malware samples. Together with ClamAV and the YARA rules that is more than **50 million known threats**. The lookup is local: no hash leaves the PC. The dashboard shows the live count per source. | |
 | | YARA rules for Windows threats: download cradles, encoded PowerShell, AMSI bypasses, Defender tampering, shadow-copy deletion, credential stealers, malicious shortcuts and HTA files, Office template injection, LOLBin abuse. You can add your own `.yar` files. | YARA rules for Mac families |
 | | Hash lookups against MalwareBazaar (free abuse.ch Auth-Key), plus VirusTotal with your own API key. Only the SHA-256 is sent, never the file. | same |
 | | Code checks: unsigned programs, self-signed or untrusted certificates (Windows' version of ad-hoc signing), signatures broken by tampering, revoked certificates, and blocked publishers. Uses Authenticode and the Windows security catalogs. | unsigned / ad-hoc / notarization checks |
@@ -70,13 +71,15 @@ Agamemnon.exe (WPF, runs as you)            Agamemnon service (LocalSystem)
   ├─ scanning (ClamAV, YARA, hashes,  ◄────►  ├─ local DoH/DoT resolver when needed
   │   signatures, archives)                   └─ administrator-rights monitor
   ├─ download watcher
-  └─ encrypted per-user quarantine          AgamemnonScanEngine service (LocalService)
-                                              └─ clamd on 127.0.0.1:3310 + freshclam updates
+  ├─ offline threat database lookups        AgamemnonScanEngine service (LocalService)
+  └─ encrypted per-user quarantine            ├─ clamd on 127.0.0.1:3310 + freshclam updates
+                                              └─ downloads VirusShare + MalwareBazaar hash lists
+                                                 into %ProgramData%\Agamemnon\ThreatIntel
 ```
 
 | Project | Contents |
 |---|---|
-| `windows/src/Agamemnon.Core` | Platform-neutral logic, unit-tested on any OS: DNS presets/rules, DoH/DoT/forwarder, leak test, scan engines and coordinator, archive expansion, quarantine store, download watcher, IPC contract. |
+| `windows/src/Agamemnon.Core` | Platform-neutral logic, unit-tested on any OS: DNS presets/rules, DoH/DoT/forwarder, leak test, scan engines and coordinator, offline threat database and feed updater, archive expansion, quarantine store, download watcher, IPC contract. |
 | `windows/src/Agamemnon.Platform.Windows` | Authenticode and catalog verification, Mark-of-the-Web, DPAPI, `DnsQuery`, Wi-Fi name, MSI/CAB extraction, Windows DNS configuration, the elevation monitor. |
 | `windows/src/Agamemnon.Service` | One executable for both Windows services, plus `--restore-dns` (run on uninstall). |
 | `windows/src/Agamemnon.App` | The WPF app. |
@@ -108,6 +111,13 @@ Agamemnon.exe (WPF, runs as you)            Agamemnon service (LocalSystem)
 - **Archives.**
   - Members are extracted under random names, so path traversal is impossible.
   - Sizes and compression ratios are enforced while the data is being copied, not taken from archive headers.
+- **Offline threat database.**
+  - Written only by the LocalService scan engine; signed-in users can read it but not change it.
+  - Each update writes a new database file and then switches the manifest to it, so a scan in
+    progress never sees a half-written file.
+  - Hashes are stored as sorted 64-bit keys (about 400 MB for 50 million) and memory-mapped, so
+    lookups take about a microsecond and almost no memory. With 50 million entries the chance
+    that a clean file matches by accident is about 3 in a trillion per file.
 - **Restoring DNS.**
   - Before the first change, the service records each adapter's DNS settings and any Windows
     DoH entries it changes.
@@ -120,7 +130,7 @@ Requirements: .NET 10 SDK. The installer additionally needs Windows.
 ```sh
 cd windows
 dotnet build Agamemnon.Windows.slnx        # builds on Windows, macOS and Linux
-dotnet test tests/Agamemnon.Core.Tests     # 81 tests
+dotnet test tests/Agamemnon.Core.Tests     # 93 tests
 python3 rules/test_rules.py                # pip install yara-python
 ```
 
@@ -131,7 +141,7 @@ On Windows:
 ```powershell
 $env:AGAMEMNON_SIGN_PFX = 'C:\path\codesign.pfx'
 $env:AGAMEMNON_SIGN_PASSWORD = '…'
-./windows/build/package.ps1 -Version 1.0.0
+./windows/build/package.ps1 -Version 2.0.0
 ```
 
 The script:
@@ -157,6 +167,15 @@ downloads. When you bump a version, run it once with `-AllowUnpinned` on a trust
 the new hash.
 
 ## Notes and limits
+
+- **The first threat-database download takes a while.** VirusShare publishes its hashes as several
+  hundred numbered lists (about 1.5 GB of text in total). The scan engine downloads 40 lists every
+  few minutes in the background, so the count climbs to over 50 million during the first hours
+  after installation; ClamAV and MalwareBazaar protect you from the start. Afterwards only new
+  lists are fetched. The finished database takes about 400 MB of disk.
+- **"Known threats" means known samples and signatures, not 50 million different families.** Most
+  entries are individual malware files identified by their hash; new, never-seen malware is caught
+  by ClamAV's heuristics, the YARA rules and the code-signature checks instead.
 
 - **Agamemnon works alongside Microsoft Defender.** It does not register with Windows Security
   Center or replace Defender's real-time file-system protection; that requires Microsoft's
@@ -186,5 +205,6 @@ Bundled and used components:
 - WiX Toolset DTF (MS-RL)
 - CommunityToolkit.Mvvm (MIT)
 - MalwareBazaar and URLhaus are services of [abuse.ch](https://abuse.ch/).
+- The VirusShare hash lists are published by [VirusShare.com](https://virusshare.com/).
 
   **Copyright (c) 2026 mirazbakis and mertyesileducation**

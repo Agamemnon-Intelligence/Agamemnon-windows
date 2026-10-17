@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
+using Agamemnon.Core.Intelligence;
 using Agamemnon.Core.Util;
 using Agamemnon.Platform.Windows;
 
@@ -11,10 +12,14 @@ namespace Agamemnon.Service;
 /// with freshclam every two hours. Hosted by the AgamemnonScanEngine service, which runs as
 /// LocalService: clamd parses untrusted files, so it gets as few privileges as possible, and it
 /// only ever sees file contents the scanning user streams to it.
+/// It also downloads the offline malware hash databases (VirusShare, MalwareBazaar) the app checks
+/// every file against, and records how many signatures all of them hold.
 /// </summary>
 public sealed class ScanEngineHost(ILogger<ScanEngineHost> logger) : BackgroundService
 {
     private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(2);
+
+    private readonly ThreatIntelStore _intel = new(AgamemnonPaths.ThreatIntelData);
 
     private static string Clamd => Path.Combine(AgamemnonPaths.ClamAvBinaries, "clamd.exe");
 
@@ -38,6 +43,7 @@ public sealed class ScanEngineHost(ILogger<ScanEngineHost> logger) : BackgroundS
 
         WriteConfiguration();
         Task updates = UpdateLoopAsync(stoppingToken);
+        Task feeds = ThreatFeedLoopAsync(stoppingToken);
 
         // clamd can't start without signatures: wait for the first download.
         while (!HasDatabase() && !stoppingToken.IsCancellationRequested)
@@ -63,6 +69,7 @@ public sealed class ScanEngineHost(ILogger<ScanEngineHost> logger) : BackgroundS
         }
 
         await updates.ConfigureAwait(false);
+        await feeds.ConfigureAwait(false);
     }
 
     private static bool HasDatabase() =>
@@ -113,6 +120,7 @@ public sealed class ScanEngineHost(ILogger<ScanEngineHost> logger) : BackgroundS
                     [$"--config-file={FreshclamConfig}", "--stdout", "--no-warnings"],
                     TimeSpan.FromMinutes(20),
                     stoppingToken).ConfigureAwait(false);
+                RecordClamAvSignatures();
                 if (result.ExitCode == 0)
                 {
                     logger.LogInformation("ClamAV signatures are up to date");
@@ -137,6 +145,74 @@ public sealed class ScanEngineHost(ILogger<ScanEngineHost> logger) : BackgroundS
             {
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// Keeps the offline hash databases current: the first download (tens of millions of hashes)
+    /// arrives in batches every few minutes, after that the feeds are checked every few hours.
+    /// </summary>
+    private async Task ThreatFeedLoopAsync(CancellationToken stoppingToken)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Agamemnon/2.0 (+https://github.com/Agamemnon-Intelligence/Agamemnon-Windows)");
+        var updater = new ThreatFeedUpdater(_intel, http, ThreatFeedUpdater.DefaultFeeds());
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            TimeSpan wait = TimeSpan.FromHours(3);
+            try
+            {
+                ThreatUpdateResult result = await updater.UpdateAsync(stoppingToken).ConfigureAwait(false);
+                foreach (string line in result.Updated)
+                {
+                    logger.LogInformation("Threat database updated: {Feed}", line);
+                }
+
+                foreach (string error in result.Errors)
+                {
+                    logger.LogWarning("Threat database update failed: {Error}", error);
+                }
+
+                if (result.MoreWaiting)
+                {
+                    wait = TimeSpan.FromMinutes(2);
+                }
+                else if (result.Errors.Count > 0)
+                {
+                    wait = TimeSpan.FromMinutes(30);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Threat database update failed");
+                wait = TimeSpan.FromMinutes(30);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            try
+            {
+                await Task.Delay(wait, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+    }
+
+    private void RecordClamAvSignatures()
+    {
+        try
+        {
+            Directory.CreateDirectory(_intel.Directory);
+            _intel.RecordClamAv(DatabaseDir, DateTimeOffset.UtcNow);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Could not record the ClamAV signature count");
         }
     }
 

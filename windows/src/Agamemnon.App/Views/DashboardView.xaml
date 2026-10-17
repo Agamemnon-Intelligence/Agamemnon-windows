@@ -85,6 +85,27 @@
                 </Border>
             </UniformGrid>
 
+            <!-- Threat intelligence: ClamAV + offline hash databases + YARA -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CaptionText}" Text="THREAT INTELLIGENCE" />
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,4">
+                        <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding CoverageBrush}" />
+                        <TextBlock Style="{StaticResource SubheadingText}" Text="{Binding CoverageTitle}" Margin="0" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding CoverageDetail}" />
+                    <ProgressBar Height="4" Margin="0,10,0,6" Maximum="100" Value="{Binding CoverageProgress, Mode=OneWay}"
+                                 Foreground="{Binding CoverageBrush}" />
+                    <ItemsControl ItemsSource="{Binding CoverageSources}" Style="{StaticResource PlainList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource CaptionText}" Text="{Binding}" Margin="0,2,0,0" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <!-- Recent activity: downloads, admin-rights alerts, scans -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

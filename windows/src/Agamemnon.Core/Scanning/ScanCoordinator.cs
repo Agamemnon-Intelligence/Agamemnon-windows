@@ -227,8 +227,8 @@ public sealed class ScanCoordinator(
                         continue;
                     }
 
-                    targets.Add(new ScanTarget(path, path, await HashAsync(path, cancellationToken).ConfigureAwait(false), info.Length,
-                        FileClassifier.Classify(path), SafeOrigin(path), 0));
+                    (string sha256, string md5) = await HashAsync(path, cancellationToken).ConfigureAwait(false);
+                    targets.Add(new ScanTarget(path, path, sha256, info.Length, FileClassifier.Classify(path), SafeOrigin(path), 0) { Md5 = md5 });
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
@@ -345,9 +345,9 @@ public sealed class ScanCoordinator(
                     foreach (ExtractedMember member in expansion.Members.Skip(start).Take(options.BatchSize))
                     {
                         long size = new FileInfo(member.TempPath).Length;
-                        members.Add(new ScanTarget(member.TempPath, member.DisplayPath,
-                            await HashAsync(member.TempPath, cancellationToken).ConfigureAwait(false), size,
-                            FileClassifier.Classify(member.DisplayPath, ReadHead(member.TempPath)), container.Origin, container.Depth + 1));
+                        (string sha256, string md5) = await HashAsync(member.TempPath, cancellationToken).ConfigureAwait(false);
+                        members.Add(new ScanTarget(member.TempPath, member.DisplayPath, sha256, size,
+                            FileClassifier.Classify(member.DisplayPath, ReadHead(member.TempPath)), container.Origin, container.Depth + 1) { Md5 = md5 });
                     }
 
                     foreach (FileScanResult inner in await ScanTargetsAsync(members, cancellationToken).ConfigureAwait(false))
@@ -438,10 +438,21 @@ public sealed class ScanCoordinator(
             return head[..read];
         }
 
-        private static async Task<string> HashAsync(string path, CancellationToken cancellationToken)
+        /// <summary>SHA-256 and MD5 in one pass over the file.</summary>
+        private static async Task<(string Sha256, string Md5)> HashAsync(string path, CancellationToken cancellationToken)
         {
             await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 16, FileOptions.SequentialScan | FileOptions.Asynchronous);
-            return Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false));
+            using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            using var md5 = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+            byte[] buffer = new byte[1 << 16];
+            int read;
+            while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                sha256.AppendData(buffer, 0, read);
+                md5.AppendData(buffer, 0, read);
+            }
+
+            return (Convert.ToHexStringLower(sha256.GetHashAndReset()), Convert.ToHexStringLower(md5.GetHashAndReset()));
         }
 
         private static void TryDelete(string path)
