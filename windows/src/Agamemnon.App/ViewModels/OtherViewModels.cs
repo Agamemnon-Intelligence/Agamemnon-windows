@@ -386,6 +386,7 @@ public sealed partial class AboutViewModel : PageViewModel
         new("ClamAV", "GPL-2.0", "https://www.clamav.net/"),
         new("YARA", "BSD-3-Clause", "https://virustotal.github.io/yara/"),
         new("MalwareBazaar and URLhaus by abuse.ch", "Service terms", "https://abuse.ch/"),
+        new("VirusShare hash lists", "Service terms", "https://virusshare.com/"),
         new("VirusTotal (with your own API key)", "Service terms", "https://www.virustotal.com/"),
         new("SharpCompress", "MIT", "https://github.com/adamhathcock/sharpcompress"),
         new("DiscUtils", "MIT", "https://github.com/DiscUtils/DiscUtils"),

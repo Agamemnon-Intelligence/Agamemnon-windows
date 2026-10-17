@@ -15,7 +15,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource BodyText}"
-                               Text="Open-source antivirus for Windows and Mac: encrypted DNS, malware scanning, archive and installer scanning, unsafe-download blocking and administrator-rights alerts." />
+                               Text="Open-source antivirus for Windows and Mac: encrypted DNS, malware scanning against more than 50 million known threats, archive and installer scanning, unsafe-download blocking and administrator-rights alerts." />
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,12,0,0">
                         <Run Text="Free software under the" />
                         <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" Foreground="{StaticResource StatusInfoBrush}">GNU General Public License v2</Hyperlink><Run Text=". You may share and change it under the same terms." />

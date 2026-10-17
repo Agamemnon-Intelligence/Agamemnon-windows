@@ -10,7 +10,7 @@ namespace Agamemnon.Core.Scanning;
 /// with --scan-list so a full-disk scan doesn't start one process per file.
 /// Rules tagged <c>malicious</c> produce a Malicious detection; all others are Suspicious.
 /// </summary>
-public sealed class YaraEngine(
+public sealed partial class YaraEngine(
     string yaraPath,
     string yaracPath,
     IReadOnlyList<string> ruleDirectories,
@@ -124,6 +124,27 @@ public sealed class YaraEngine(
 
         return [.. detections.Select((d, i) => new EngineResult(d, errors[i]))];
     }
+
+    /// <summary>How many rules the bundled and user rule files declare.</summary>
+    public int CountRules()
+    {
+        int count = 0;
+        foreach (string file in FindRuleFiles())
+        {
+            try
+            {
+                count += RuleDeclaration().Count(File.ReadAllText(file));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return count;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\s*(?:(?:private|global)\s+)*rule\s+\w+", System.Text.RegularExpressions.RegexOptions.Multiline)]
+    private static partial System.Text.RegularExpressions.Regex RuleDeclaration();
 
     private IReadOnlyList<string> FindRuleFiles() =>
         [.. ruleDirectories

@@ -69,7 +69,11 @@ public sealed record ScanTarget(
     long Size,
     FileKind Kind,
     FileOrigin? Origin,
-    int Depth);
+    int Depth)
+{
+    /// <summary>MD5, computed alongside the SHA-256 for hash lists that only publish MD5 (e.g. VirusShare).</summary>
+    public string? Md5 { get; init; }
+}
 
 public sealed record FileScanResult(
     string DisplayPath,

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Agamemnon.Core.Archives;
+using Agamemnon.Core.Intelligence;
 using Agamemnon.Core.Ipc;
 using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Reputation;
@@ -41,6 +42,7 @@ public sealed class AppServices : IDisposable
             (new MalwareBazaarClient(Http, () => Settings.HashLookups ? Secrets.GetSecret(SecretNames.MalwareBazaarAuthKey) : null), 60),
             (new VirusTotalClient(Http, () => Settings.HashLookups ? Secrets.GetSecret(SecretNames.VirusTotalApiKey) : null), 4),
         ]);
+        ThreatDatabase = new OfflineHashEngine(new ThreatIntelStore(AgamemnonPaths.ThreatIntelData));
         Signatures = new CodeSignatureEngine(new AuthenticodeVerifier());
         DownloadSource = new DownloadSourceEngine(MalwareHosts);
         Expander = ArchiveExpander.CreateDefault([new MsiExtractor(), new CabExtractor()]);
@@ -48,7 +50,7 @@ public sealed class AppServices : IDisposable
     }
 
     public static string Version =>
-        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
+        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "2.0.0";
 
     public event EventHandler? SettingsChanged;
 
@@ -67,6 +69,9 @@ public sealed class AppServices : IDisposable
     public YaraEngine Yara { get; }
 
     public HashReputationEngine Hashes { get; }
+
+    /// <summary>Offline VirusShare and MalwareBazaar hash databases, kept current by the scan engine service.</summary>
+    public OfflineHashEngine ThreatDatabase { get; }
 
     public CodeSignatureEngine Signatures { get; }
 
@@ -100,7 +105,7 @@ public sealed class AppServices : IDisposable
 
     public ScanCoordinator CreateScanner(bool forDownloads)
     {
-        var engines = new List<IScanEngine> { ClamAv, Yara, Signatures };
+        var engines = new List<IScanEngine> { ClamAv, Yara, ThreatDatabase, Signatures };
         if (Settings.HashLookups)
         {
             engines.Add(Hashes);
@@ -135,6 +140,7 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         Yara.Dispose();
+        ThreatDatabase.Dispose();
         Http.Dispose();
     }
 }

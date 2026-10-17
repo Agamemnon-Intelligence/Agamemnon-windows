@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Media;
 using Agamemnon.App.Services;
+using Agamemnon.Core.Intelligence;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -30,6 +31,34 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     [ObservableProperty]
     public partial string EngineText { get; set; } = "Checking ClamAV…";
+
+    /// <summary>Known threats Agamemnon can recognise, refreshed by <see cref="MainViewModel.MonitorEnginesAsync"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CoverageTitle), nameof(CoverageDetail), nameof(CoverageBrush), nameof(CoverageSources), nameof(CoverageProgress))]
+    public partial ThreatCoverage? Coverage { get; set; }
+
+    public string CoverageTitle => Coverage is { Total: > 0 } c
+        ? string.Format(CultureInfo.CurrentCulture, "{0:N0} known threats", c.Total)
+        : "Preparing the threat database…";
+
+    public string CoverageDetail => Coverage switch
+    {
+        null or { Total: 0 } => "The scan engine service downloads ClamAV signatures and the offline malware hash databases after installation.",
+        { MeetsGoal: true, Downloading: false } => "Every file is checked against all of them offline; nothing is sent anywhere.",
+        { MeetsGoal: true } => "Still adding the newest lists. Every file is checked against all of them offline.",
+        { Downloading: true } c => string.Format(CultureInfo.CurrentCulture,
+            "Downloading the offline threat database ({0:P0} of the {1:N0} target). It finishes in the background.",
+            (double)c.Total / ThreatCoverage.Goal, ThreatCoverage.Goal),
+        _ => "Some feeds couldn't be downloaded yet; Agamemnon keeps retrying.",
+    };
+
+    public double CoverageProgress => Coverage is { } c ? Math.Min(1, (double)c.Total / ThreatCoverage.Goal) * 100 : 0;
+
+    public Brush CoverageBrush => StatusBrushes.For(Coverage is { MeetsGoal: true } ? ProtectionLevel.Protected : ProtectionLevel.Warning);
+
+    public IReadOnlyList<string> CoverageSources => Coverage is null
+        ? []
+        : [.. Coverage.Sources.Select(s => string.Format(CultureInfo.CurrentCulture, "{0}: {1:N0} {2}", s.Name, s.Count, s.What))];
 
     public string DnsTitle => _main.Dns.IsProtecting ? "On" : _main.Dns.HasError ? "Problem" : "Off";
 

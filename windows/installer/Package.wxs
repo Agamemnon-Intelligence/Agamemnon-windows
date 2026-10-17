@@ -10,6 +10,7 @@
       AgamemnonScanEngine service        LocalService: ClamAV daemon + signature updates
       %ProgramData%\Agamemnon\           service state, readable and writable by SYSTEM and administrators only
                          \ClamAV\        signatures; also writable by the LocalService scan engine
+                         \ThreatIntel\   offline malware hash databases; writable by the scan engine, readable by users
 
     The UAC prompt for this installer is the one-time approval for system-wide encrypted DNS
     (the Windows counterpart of approving Agamemnon's DNS settings in macOS System Settings).
@@ -50,6 +51,7 @@
     <StandardDirectory Id="CommonAppDataFolder">
       <Directory Id="DataFolder" Name="Agamemnon">
         <Directory Id="ClamAvDataFolder" Name="ClamAV" />
+        <Directory Id="ThreatIntelDataFolder" Name="ThreatIntel" />
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
@@ -92,7 +94,7 @@
         <ServiceInstall Id="AgamemnonScanEngine"
                         Name="AgamemnonScanEngine"
                         DisplayName="Agamemnon Scan Engine"
-                        Description="Runs the ClamAV scanning engine for Agamemnon and keeps its malware signatures up to date."
+                        Description="Runs the ClamAV scanning engine for Agamemnon and keeps its malware signatures and offline threat databases up to date."
                         Arguments="--role scan-engine"
                         Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService" Vital="yes">
           <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
@@ -102,7 +104,8 @@
       </Component>
     </ComponentGroup>
 
-    <!-- Service state: SYSTEM and administrators only. ClamAV signatures: plus LocalService (modify). -->
+    <!-- Service state: SYSTEM and administrators only. ClamAV signatures: plus LocalService (modify).
+         Threat databases: plus LocalService (modify) and Users (read): the app scans as the signed-in user. -->
     <ComponentGroup Id="MachineData">
       <Component Id="DataFolderAcl" Directory="DataFolder" Guid="7E0B6C0B-6E8A-4E59-9C61-0B9C3F3B9A11">
         <CreateFolder>
@@ -112,6 +115,11 @@
       <Component Id="ClamAvFolderAcl" Directory="ClamAvDataFolder" Guid="4C1C9C8E-3D6B-4E36-8C1B-7B8E2F0D5A22">
         <CreateFolder>
           <PermissionEx Sddl="O:SYG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;LS)" />
+        </CreateFolder>
+      </Component>
+      <Component Id="ThreatIntelFolderAcl" Directory="ThreatIntelDataFolder" Guid="B6E1F0A2-5D3C-4F7E-9A21-6C8D2E4F1B55">
+        <CreateFolder>
+          <PermissionEx Sddl="O:SYG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;LS)(A;OICI;0x1200a9;;;BU)" />
         </CreateFolder>
       </Component>
     </ComponentGroup>
