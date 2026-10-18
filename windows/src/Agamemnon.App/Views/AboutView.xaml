@@ -1,7 +1,8 @@
 <UserControl x:Class="Agamemnon.App.Views.AboutView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels">
+             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
+             xmlns:l="clr-namespace:Agamemnon.App.Localization">
     <ScrollViewer Style="{StaticResource Page}">
         <StackPanel MaxWidth="720" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
@@ -15,17 +16,17 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource BodyText}"
-                               Text="Open-source antivirus for Windows and Mac: encrypted DNS, malware scanning against more than 50 million known threats, archive and installer scanning, unsafe-download blocking and administrator-rights alerts." />
+                               Text="{l:Tr about.description}" />
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,12,0,0">
-                        <Run Text="Free software under the" />
-                        <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" Foreground="{StaticResource StatusInfoBrush}">GNU General Public License v2</Hyperlink><Run Text=". You may share and change it under the same terms." />
+                        <Run Text="{l:Tr about.license.before}" />
+                        <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" Foreground="{StaticResource StatusInfoBrush}">GNU General Public License v2</Hyperlink><Run Text="{l:Tr about.license.after}" />
                     </TextBlock>
                 </StackPanel>
             </Border>
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SubheadingText}" Text="Made by" />
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr about.madeBy}" />
                     <ItemsControl ItemsSource="{Binding Credits}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:Credit}">
@@ -39,7 +40,7 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SubheadingText}" Text="Built with" />
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr about.builtWith}" />
                     <ItemsControl ItemsSource="{Binding Components}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:Component}">

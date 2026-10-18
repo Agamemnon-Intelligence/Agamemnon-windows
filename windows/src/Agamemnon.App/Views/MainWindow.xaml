@@ -4,6 +4,7 @@
         xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
         xmlns:v="clr-namespace:Agamemnon.App.Views"
         xmlns:svc="clr-namespace:Agamemnon.App.Services"
+        xmlns:l="clr-namespace:Agamemnon.App.Localization"
         Title="Agamemnon" Width="1120" Height="760" MinWidth="880" MinHeight="600"
         Icon="/Assets/agamemnon.ico"
         Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextPrimaryBrush}"
@@ -18,6 +19,7 @@
         <DataTemplate DataType="{x:Type vm:QuarantineViewModel}"><v:QuarantineView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:AboutViewModel}"><v:AboutView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HelpViewModel}"><v:HelpView /></DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -34,7 +36,7 @@
                     <TextBlock Text="Agamemnon" Style="{StaticResource HeadingText}" Margin="10,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Status, like the Mac menu bar item: protection and DNS -->
+                <!-- Status, like the Mac menu bar item: protection and DNS; then the language switch -->
                 <StackPanel DockPanel.Dock="Bottom" Margin="20,12,20,20">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                         <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding ProtectionBrush}" />
@@ -43,26 +45,39 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                         <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding DnsBrush}" />
                         <TextBlock Style="{StaticResource CaptionText}" TextTrimming="CharacterEllipsis" MaxWidth="160">
-                            <Run Text="DNS:" /> <Run Text="{Binding DnsSummary, Mode=OneWay}" />
+                            <Run Text="{l:Tr nav.dnsStatus}" /> <Run Text="{Binding DnsSummary, Mode=OneWay}" />
                         </TextBlock>
                     </StackPanel>
-                    <Button Style="{StaticResource LinkButton}" Content="About Agamemnon" HorizontalAlignment="Left"
+                    <Button Style="{StaticResource LinkButton}" Content="{l:Tr nav.about}" HorizontalAlignment="Left"
                             Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.About}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" ToolTip="{l:Tr nav.languageTip}">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE774;" FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0" />
+                        <RadioButton Style="{StaticResource LanguageChip}" Content="English" GroupName="language"
+                                     IsChecked="{Binding IsEnglish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="en" />
+                        <RadioButton Style="{StaticResource LanguageChip}" Content="Türkçe" GroupName="language"
+                                     IsChecked="{Binding IsTurkish, Mode=OneWay}" Command="{Binding SetLanguageCommand}" CommandParameter="tr" />
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel x:Name="Navigation">
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE80F;" Content="Dashboard" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE80F;" Content="{l:Tr nav.dashboard}" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dashboard}" />
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE721;" Content="Scan" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE721;" Content="{l:Tr nav.scan}" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Scan}" />
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="DNS" GroupName="nav"
+                    <!-- Simple mode hides the two pages with technical options; their switches stay on the dashboard. -->
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="{l:Tr nav.dns}" GroupName="nav"
+                                 Visibility="{Binding ShowAdvancedPages, Converter={StaticResource Visible}}"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dns}" />
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE896;" Content="Downloads" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE896;" Content="{l:Tr nav.downloads}" GroupName="nav"
+                                 Visibility="{Binding ShowAdvancedPages, Converter={StaticResource Visible}}"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Downloads}" />
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE72E;" Content="Quarantine" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE72E;" Content="{l:Tr nav.quarantine}" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Quarantine}" />
-                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Settings" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE713;" Content="{l:Tr nav.settings}" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Settings}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE897;" Content="{l:Tr nav.help}" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Help}" />
                 </StackPanel>
             </DockPanel>
         </Border>

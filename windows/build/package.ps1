@@ -16,7 +16,7 @@
   not for distribution: SmartScreen warns about unsigned installers).
 #>
 param(
-    [string]$Version = '2.0.0',
+    [string]$Version = '3.0.0',
     [switch]$AllowUnpinned
 )
 $ErrorActionPreference = 'Stop'

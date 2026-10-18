@@ -46,10 +46,10 @@ public partial class MainWindow : Window
     /// <summary>Keeps the sidebar highlight in step when a page is opened from elsewhere (tray, dashboard).</summary>
     private void SyncNavigation()
     {
-        string title = _model.CurrentPage.Title;
+        NavigationTarget target = _model.CurrentPage.Target;
         foreach (RadioButton item in Navigation.Children.OfType<RadioButton>())
         {
-            item.IsChecked = (string)item.Content == title;
+            item.IsChecked = item.CommandParameter is NavigationTarget t && t == target;
         }
     }
 }

@@ -1,0 +1,146 @@
+<Window x:Class="Agamemnon.App.Views.WelcomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:Agamemnon.App.Localization"
+        Title="{l:Tr welcome.windowTitle}" Width="720" Height="640" MinWidth="600" MinHeight="560"
+        Icon="/Assets/agamemnon.ico" ResizeMode="CanResizeWithGrip" ShowInTaskbar="False"
+        Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontSizeBody}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        WindowStartupLocation="CenterOwner">
+    <!-- Three short steps: language, protection, done. Big buttons, plain words. -->
+    <DockPanel Margin="32,28,32,24">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,20">
+            <Image Source="/Assets/agamemnon-256.png" Width="48" Height="48" RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource HeadingText}" Text="{Binding Headline}" />
+                <TextBlock Style="{StaticResource CaptionText}" Text="{Binding StepText}" Margin="0,2,0,0" />
+            </StackPanel>
+        </StackPanel>
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,20,0,0">
+            <Button DockPanel.Dock="Right" Content="{Binding NextLabel}" Command="{Binding NextCommand}" Padding="28,10" FontWeight="SemiBold" />
+            <Button DockPanel.Dock="Right" Content="{l:Tr welcome.back}" Command="{Binding BackCommand}" Style="{StaticResource SecondaryButton}"
+                    Margin="0,0,10,0" Visibility="{Binding CanGoBack, Converter={StaticResource Visible}}" />
+            <Border />
+        </DockPanel>
+
+        <ScrollViewer Style="{StaticResource Page}" Padding="0">
+            <Grid>
+                <!-- Step 1: language and what Agamemnon does -->
+                <StackPanel Visibility="{Binding IsLanguageStep, Converter={StaticResource Visible}}">
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="Choose your language · Dilinizi seçin" />
+                    <WrapPanel Margin="0,0,0,20">
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="welcomeLanguage" Width="250" IsChecked="{Binding IsEnglish}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeSubheading}" Text="English" />
+                                <TextBlock Style="{StaticResource CaptionText}" Text="Use Agamemnon in English" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="welcomeLanguage" Width="250" IsChecked="{Binding IsTurkish}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeSubheading}" Text="Türkçe" />
+                                <TextBlock Style="{StaticResource CaptionText}" Text="Agamemnon'u Türkçe kullanın" />
+                            </StackPanel>
+                        </RadioButton>
+                    </WrapPanel>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr welcome.what.title}" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.what.1}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.what.2}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.what.3}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.what.4}" Margin="0,2" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Visibility="{Binding IsUpgrade, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr welcome.new.title}" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.1}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.2}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.3}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.4}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.new.kept}" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Step 2: protection, with the recommended setup one click away -->
+                <StackPanel Visibility="{Binding IsSetupStep, Converter={StaticResource Visible}}">
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr welcome.setup.title}" />
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{l:Tr welcome.setup.detail}" Margin="0,0,0,14" />
+                    <Button HorizontalAlignment="Left" Command="{Binding RecommendedCommand}" Padding="22,12" Margin="0,0,0,16">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{StaticResource ButtonTextBrush}" Margin="0,0,10,0" />
+                            <TextBlock Text="{l:Tr welcome.setup.recommended}" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding DownloadProtection}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.downloads}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.downloads.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding EncryptedDns}" IsEnabled="{Binding DnsAvailable}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.dns}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.setup.dns.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutomaticScans}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr welcome.setup.autoScan}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.setup.autoScan.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AdminRightsAlerts}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.admin}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.admin.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding StartWithWindows}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.startup.title}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr settings.startup.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Step 3: done -->
+                <StackPanel Visibility="{Binding IsDoneStep, Converter={StaticResource Visible}}">
+                    <Grid Width="72" Height="72" HorizontalAlignment="Left" Margin="0,0,0,14">
+                        <Ellipse Fill="{StaticResource StatusProtectedBrush}" Opacity="0.15" />
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" FontSize="32" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource StatusProtectedBrush}" />
+                    </Grid>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr welcome.done.title}" />
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{l:Tr welcome.done.detail}" Margin="0,0,0,16" />
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding SimpleMode}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.simple.title}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr settings.simple.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ScanNow}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr welcome.done.scanNow}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr scan.quick.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.done.tray}" />
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

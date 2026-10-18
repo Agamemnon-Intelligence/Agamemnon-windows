@@ -1,49 +1,108 @@
 <UserControl x:Class="Agamemnon.App.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels">
+             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
+             xmlns:svc="clr-namespace:Agamemnon.App.Services"
+             xmlns:l="clr-namespace:Agamemnon.App.Localization">
     <ScrollViewer Style="{StaticResource Page}">
         <StackPanel MaxWidth="980" HorizontalAlignment="Left">
-            <TextBlock Style="{StaticResource TitleText}" Text="Settings" Margin="0,0,0,20" />
+            <TextBlock Style="{StaticResource TitleText}" Text="{l:Tr settings.title}" Margin="0,0,0,20" />
+
+            <!-- Language: names are written in their own language so anyone can find theirs -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.language.title}" />
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr settings.language.detail}" Margin="0,0,0,10" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="settingsLanguage" Width="200" IsChecked="{Binding IsEnglish}">
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="English" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="settingsLanguage" Width="200" IsChecked="{Binding IsTurkish}">
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Türkçe" />
+                        </RadioButton>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Ease of use -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding SimpleMode}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.simple.title}" Margin="0" />
+                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:Tr settings.simple.detail}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Content="{l:Tr settings.openDns}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                                Command="{Binding OpenCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dns}" />
+                        <Button Content="{l:Tr settings.openDownloads}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                                Command="{Binding OpenCommand}" CommandParameter="{x:Static svc:NavigationTarget.Downloads}" />
+                        <Button Content="{l:Tr settings.welcomeAgain}" Style="{StaticResource SecondaryButton}" Command="{Binding ShowWelcomeCommand}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Automatic scans -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.autoScan.title}" />
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr settings.autoScan.detail}" Margin="0,0,0,10" />
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="autoscan" Width="200" IsChecked="{Binding AutoScanWeekly}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.autoScan.weekly}" />
+                                <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr common.recommended}" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="autoscan" Width="200" IsChecked="{Binding AutoScanDaily}">
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.autoScan.daily}" />
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionTile}" GroupName="autoscan" Width="200" IsChecked="{Binding AutoScanOff}">
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.autoScan.off}" />
+                        </RadioButton>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
 
             <!-- Hash lookups -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding HashLookups}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SubheadingText}" Text="Hash lookups" Margin="0" />
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.hash.title}" Margin="0" />
                             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                                       Text="Check programs, installers, scripts, documents and archives against known malware by their SHA-256 fingerprint. Only the fingerprint is sent, never the file." />
+                                       Text="{l:Tr settings.hash.detail}" />
                         </StackPanel>
                     </CheckBox>
 
-                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="MalwareBazaar (abuse.ch) Auth-Key" Margin="0,20,0,4" />
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.mbKey.title}" Margin="0,20,0,4" />
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,8">
-                        <Run Text="Free. Get one at" />
+                        <Run Text="{l:Tr settings.mbKey.get}" />
                         <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://auth.abuse.ch/" Foreground="{StaticResource StatusInfoBrush}">auth.abuse.ch</Hyperlink>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding HasMalwareBazaarKey, Converter={StaticResource Visible}}">
-                        <TextBlock Style="{StaticResource BodyText}" Text="✓ Key saved (encrypted for your Windows account)" VerticalAlignment="Center" Foreground="{StaticResource StatusProtectedBrush}" />
-                        <Button Content="Remove" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveMalwareBazaarKeyCommand}" Margin="12,0,0,0" />
+                        <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr settings.key.saved}" VerticalAlignment="Center" Foreground="{StaticResource StatusProtectedBrush}" />
+                        <Button Content="{l:Tr common.remove}" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveMalwareBazaarKeyCommand}" Margin="12,0,0,0" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding HasMalwareBazaarKey, Converter={StaticResource CollapsedWhen}}">
                         <TextBox Width="360" Text="{Binding NewMalwareBazaarKey, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Content="Save" Command="{Binding SaveMalwareBazaarKeyCommand}" Margin="8,0,0,0" />
+                        <Button Content="{l:Tr common.save}" Command="{Binding SaveMalwareBazaarKeyCommand}" Margin="8,0,0,0" />
                     </StackPanel>
 
-                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="VirusTotal API key (optional)" Margin="0,20,0,4" />
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.vtKey.title}" Margin="0,20,0,4" />
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,8">
-                        <Run Text="Your own key from" />
+                        <Run Text="{l:Tr settings.vtKey.get}" />
                         <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="https://www.virustotal.com/gui/my-apikey" Foreground="{StaticResource StatusInfoBrush}">virustotal.com</Hyperlink>
-                        <Run Text=". The free tier allows 4 lookups a minute; extra files are skipped, not delayed." />
+                        <Run Text="{l:Tr settings.vtKey.limit}" />
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding HasVirusTotalKey, Converter={StaticResource Visible}}">
-                        <TextBlock Style="{StaticResource BodyText}" Text="✓ Key saved (encrypted for your Windows account)" VerticalAlignment="Center" Foreground="{StaticResource StatusProtectedBrush}" />
-                        <Button Content="Remove" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveVirusTotalKeyCommand}" Margin="12,0,0,0" />
+                        <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr settings.key.saved}" VerticalAlignment="Center" Foreground="{StaticResource StatusProtectedBrush}" />
+                        <Button Content="{l:Tr common.remove}" Style="{StaticResource SecondaryButton}" Command="{Binding RemoveVirusTotalKeyCommand}" Margin="12,0,0,0" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding HasVirusTotalKey, Converter={StaticResource CollapsedWhen}}">
                         <TextBox Width="360" Text="{Binding NewVirusTotalKey, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Content="Save" Command="{Binding SaveVirusTotalKeyCommand}" Margin="8,0,0,0" />
+                        <Button Content="{l:Tr common.save}" Command="{Binding SaveVirusTotalKeyCommand}" Margin="8,0,0,0" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -53,16 +112,16 @@
                 <StackPanel>
                     <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AdminRightsAlerts}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SubheadingText}" Text="Administrator-rights alerts" Margin="0" />
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.admin.title}" Margin="0" />
                             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                                       Text="Tell me when a program gets administrator rights or installs a system service, with who signed it and whether it's known malware." />
+                                       Text="{l:Tr settings.admin.detail}" />
                         </StackPanel>
                     </CheckBox>
                     <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding StartAtLogin}" Margin="0,16,0,0">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SubheadingText}" Text="Start with Windows" Margin="0" />
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.startup.title}" Margin="0" />
                             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                                       Text="Download protection and alerts only work while Agamemnon is running in the notification area." />
+                                       Text="{l:Tr settings.startup.detail}" />
                         </StackPanel>
                     </CheckBox>
                 </StackPanel>
@@ -72,8 +131,8 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <DockPanel>
-                        <Button DockPanel.Dock="Right" Content="Refresh" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshEnginesCommand}" VerticalAlignment="Top" />
-                        <TextBlock Style="{StaticResource SubheadingText}" Text="Scan engines" />
+                        <Button DockPanel.Dock="Right" Content="{l:Tr common.refresh}" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshEnginesCommand}" VerticalAlignment="Top" />
+                        <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr settings.engines.title}" />
                     </DockPanel>
                     <ItemsControl ItemsSource="{Binding Engines}">
                         <ItemsControl.ItemTemplate>
@@ -87,34 +146,34 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <TextBlock Style="{StaticResource CaptionText}" Margin="0,8,0,8"
-                               Text="ClamAV signatures update automatically every two hours. Add your own YARA rules (.yar) to the rules folder." />
-                    <Button Content="Open YARA rules folder" Style="{StaticResource SecondaryButton}" Command="{Binding OpenRulesFolderCommand}" HorizontalAlignment="Left" />
+                               Text="{l:Tr settings.engines.detail}" />
+                    <Button Content="{l:Tr settings.engines.rulesFolder}" Style="{StaticResource SecondaryButton}" Command="{Binding OpenRulesFolderCommand}" HorizontalAlignment="Left" />
 
-                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Folders left out of scans" Margin="0,20,0,6" />
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.exclusions.title}" Margin="0,20,0,6" />
                     <ItemsControl ItemsSource="{Binding Exclusions}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="0,2">
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="Remove"
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="{l:Tr common.remove}"
                                             Command="{Binding DataContext.RemoveExclusionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                     <TextBlock Style="{StaticResource BodyText}" Text="{Binding}" VerticalAlignment="Center" />
                                 </DockPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Content="Add folder…" Style="{StaticResource SecondaryButton}" Command="{Binding AddExclusionCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                    <Button Content="{l:Tr common.addFolder}" Style="{StaticResource SecondaryButton}" Command="{Binding AddExclusionCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
                     <DockPanel Margin="0,20,0,0">
-                        <Button DockPanel.Dock="Right" Content="Forget all" Style="{StaticResource SecondaryButton}" Command="{Binding ClearTrustedCommand}" />
+                        <Button DockPanel.Dock="Right" Content="{l:Tr settings.trusted.forget}" Style="{StaticResource SecondaryButton}" Command="{Binding ClearTrustedCommand}" />
                         <StackPanel>
-                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Trusted files" />
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr settings.trusted.title}" />
                             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding TrustedText}" />
                         </StackPanel>
                     </DockPanel>
                 </StackPanel>
             </Border>
 
-            <Button Style="{StaticResource LinkButton}" Content="About Agamemnon" Command="{Binding ShowAboutCommand}" HorizontalAlignment="Left" Margin="0,0,0,24" />
+            <Button Style="{StaticResource LinkButton}" Content="{l:Tr nav.about}" Command="{Binding ShowAboutCommand}" HorizontalAlignment="Left" Margin="0,0,0,24" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

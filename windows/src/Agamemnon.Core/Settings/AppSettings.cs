@@ -12,6 +12,14 @@ public enum UnsignedDownloadPolicy
     Block,
 }
 
+/// <summary>How often Agamemnon runs a quick scan by itself.</summary>
+public enum AutoScanFrequency
+{
+    Off,
+    Daily,
+    Weekly,
+}
+
 /// <summary>Per-user preferences, stored as JSON in %APPDATA%\Agamemnon.</summary>
 public sealed record AppSettings
 {
@@ -34,6 +42,17 @@ public sealed record AppSettings
 
     /// <summary>Files the user restored or chose to trust, by SHA-256.</summary>
     public IReadOnlyList<string> AllowedHashes { get; init; } = [];
+
+    /// <summary>"en" or "tr"; null follows the Windows display language.</summary>
+    public string? Language { get; init; }
+
+    /// <summary>Shows only the everyday pages; encrypted DNS and download details stay reachable from Settings.</summary>
+    public bool SimpleMode { get; init; }
+
+    public AutoScanFrequency AutoScan { get; init; } = AutoScanFrequency.Weekly;
+
+    /// <summary>The 3.0 welcome guide (language and recommended setup) has been completed.</summary>
+    public bool WelcomeCompleted { get; init; }
 
     public DateTimeOffset? LastScanAt { get; init; }
 

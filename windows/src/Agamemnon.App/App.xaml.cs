@@ -1,10 +1,13 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
+using Agamemnon.App.Localization;
 using Agamemnon.App.Services;
 using Agamemnon.App.ViewModels;
 using Agamemnon.App.Views;
 using Agamemnon.Core.Dns;
 using Agamemnon.Core.Ipc;
+using Agamemnon.Core.Localization;
 using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Scanning;
 using Agamemnon.Platform.Windows;
@@ -30,6 +33,8 @@ public partial class App : Application
     private DownloadGuard? _downloads;
     private MainViewModel? _model;
     private MainWindow? _window;
+    private bool _upgradedFrom2;
+    private bool _welcomeOpen;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -68,6 +73,7 @@ public partial class App : Application
         DispatcherUnhandledException += OnUnhandledException;
 
         _services = new AppServices();
+        Loc.Instance.SetLanguage(Translations.Parse(_services.Settings.Language, CultureInfo.CurrentUICulture));
         _tray = new TrayIcon();
         var notifier = new Notifier(_tray);
         _downloads = new DownloadGuard(_services, notifier);
@@ -81,11 +87,13 @@ public partial class App : Application
         };
         _tray.ToggleDnsRequested += (_, _) => _model.Dns.ToggleCommand.Execute(null);
         _tray.QuitRequested += (_, _) => Quit();
+        _model.Settings.WelcomeRequested += (_, _) => ShowWelcome();
 
-        FirstRunSetup(_services);
+        _upgradedFrom2 = FirstRunSetup(_services);
         _downloads.Restart();
         _ = _model.ListenToServiceAsync(_lifetime.Token);
         _ = _model.MonitorEnginesAsync(_lifetime.Token);
+        _ = _model.RunScheduledScansAsync(_lifetime.Token);
         ListenForActivation();
 
         if (!args.Contains("--background"))
@@ -106,12 +114,13 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private static void FirstRunSetup(AppServices services)
+    /// <summary>One-time setup for this Windows user; returns true when they already used an earlier version.</summary>
+    private static bool FirstRunSetup(AppServices services)
     {
         string marker = Path.Combine(AgamemnonPaths.UserSettings, ".initialized");
         if (File.Exists(marker))
         {
-            return;
+            return true;
         }
 
         if (services.Settings.StartAtLogin)
@@ -121,6 +130,7 @@ public partial class App : Application
 
         Directory.CreateDirectory(AgamemnonPaths.UserSettings);
         File.WriteAllText(marker, DateTimeOffset.Now.ToString("O"));
+        return false;
     }
 
     private void ShowMain(NavigationTarget target)
@@ -139,6 +149,40 @@ public partial class App : Application
 
         _window.Show();
         _window.Activate();
+
+        if (_services?.Settings.WelcomeCompleted == false)
+        {
+            ShowWelcome();
+        }
+    }
+
+    /// <summary>The welcome guide: once after installing or upgrading, and again from Settings or Help.</summary>
+    private void ShowWelcome()
+    {
+        if (_model is null || _services is null || _welcomeOpen)
+        {
+            return;
+        }
+
+        _welcomeOpen = true;
+        try
+        {
+            var welcome = new WelcomeWindow(new WelcomeViewModel(_services, _model, _upgradedFrom2));
+            if (_window is { IsVisible: true })
+            {
+                welcome.Owner = _window;
+            }
+            else
+            {
+                welcome.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            welcome.ShowDialog();
+        }
+        finally
+        {
+            _welcomeOpen = false;
+        }
     }
 
     private void ListenForActivation()
@@ -173,7 +217,7 @@ public partial class App : Application
     {
         // Keep protection running; tell the user what went wrong.
         e.Handled = true;
-        _tray?.Notify(NotificationLevel.Warning, "Agamemnon hit an unexpected problem", e.Exception.Message, NavigationTarget.Dashboard);
+        _tray?.Notify(NotificationLevel.Warning, L.T("app.unexpectedProblem"), e.Exception.Message, NavigationTarget.Dashboard);
     }
 
     /// <summary>Elevated helper: apply a custom DNS server (the service requires an elevated caller for that).</summary>

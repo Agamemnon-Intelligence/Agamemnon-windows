@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Agamemnon.App.Localization;
 using Agamemnon.App.Services;
+using Agamemnon.Core.Localization;
 using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Scanning;
 using Agamemnon.Core.Settings;
@@ -33,7 +35,7 @@ public sealed partial class DownloadsViewModel : PageViewModel
         guard.StateChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(CheckedText)));
     }
 
-    public override string Title => "Downloads";
+    public override NavigationTarget Target => NavigationTarget.Downloads;
 
     public ICollectionView RecentDownloads { get; }
 
@@ -77,8 +79,8 @@ public sealed partial class DownloadsViewModel : PageViewModel
         }
     }
 
-    public string CheckedText => $"{_guard.CheckedToday} download(s) checked since Agamemnon started. "
-        + (_services.MalwareHosts.Count > 0 ? $"{_services.MalwareHosts.Count:N0} known malware sites on the block list." : string.Empty);
+    public string CheckedText => L.F("downloads.checked", _guard.CheckedToday)
+        + (_services.MalwareHosts.Count > 0 ? " " + L.F("downloads.blocklist", _services.MalwareHosts.Count) : string.Empty);
 
     public override void OnShown()
     {
@@ -94,7 +96,7 @@ public sealed partial class DownloadsViewModel : PageViewModel
     [RelayCommand]
     private void AddFolder()
     {
-        var dialog = new OpenFolderDialog { Title = "Choose a folder to watch for new files" };
+        var dialog = new OpenFolderDialog { Title = L.T("downloads.dialog.addFolder") };
         if (dialog.ShowDialog() != true)
         {
             return;
@@ -126,7 +128,7 @@ public sealed partial class QuarantineRow(QuarantineItem item, QuarantineViewMod
 
     public string Reason => item.Summary;
 
-    public string Source => item.Source == "Download" ? "Blocked download" : "Found by scan";
+    public string Source => item.Source == "Download" ? L.T("quarantine.source.download") : L.T("quarantine.source.scan");
 
     public Brush Brush => StatusBrushes.For(item.Detections.Count == 0 ? Severity.Suspicious : item.Detections.Max(d => d.Severity));
 
@@ -147,7 +149,7 @@ public sealed partial class QuarantineViewModel : PageViewModel
         services.Quarantine.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(Reload);
     }
 
-    public override string Title => "Quarantine";
+    public override NavigationTarget Target => NavigationTarget.Quarantine;
 
     public ObservableCollection<QuarantineRow> Items { get; } = [];
 
@@ -161,8 +163,8 @@ public sealed partial class QuarantineViewModel : PageViewModel
     public void Restore(QuarantineRow row)
     {
         MessageBoxResult answer = MessageBox.Show(
-            $"Restore “{row.FileName}” to\n{row.OriginalPath}?\n\nIt was quarantined because: {row.Reason}.\nOnly restore it if you're sure it's safe. Agamemnon won't flag this exact file again.",
-            "Restore from quarantine", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            L.F("quarantine.restore.confirm", row.FileName, row.OriginalPath, row.Reason),
+            L.T("quarantine.restore.title"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (answer != MessageBoxResult.Yes)
         {
             return;
@@ -173,8 +175,8 @@ public sealed partial class QuarantineViewModel : PageViewModel
             // Trust first, so the download watcher doesn't put it straight back.
             _services.Trust(row.Item.Sha256);
             string restored = _services.Quarantine.Restore(row.Item.Id);
-            Message = $"Restored to {restored}";
-            _services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Quarantine, ActivityLevel.Warning, $"Restored {row.FileName}", restored));
+            Message = L.F("quarantine.restored", restored);
+            _services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Quarantine, ActivityLevel.Warning, L.F("activity.restored", row.FileName), restored));
         }
         catch (Exception ex) when (ex is QuarantineException or IOException or UnauthorizedAccessException)
         {
@@ -184,14 +186,20 @@ public sealed partial class QuarantineViewModel : PageViewModel
 
     public void Delete(QuarantineRow row)
     {
+        if (MessageBox.Show(L.F("quarantine.delete.confirm", row.FileName), L.T("quarantine.delete.title"),
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         _services.Quarantine.Delete(row.Item.Id);
-        Message = $"Deleted {row.FileName} permanently.";
+        Message = L.F("quarantine.deleted", row.FileName);
     }
 
     [RelayCommand]
     private void DeleteAll()
     {
-        if (Items.Count == 0 || MessageBox.Show($"Permanently delete all {Items.Count} quarantined file(s)?", "Empty quarantine",
+        if (Items.Count == 0 || MessageBox.Show(L.F("quarantine.deleteAll.confirm", Items.Count), L.T("quarantine.deleteAll.title"),
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
         {
             return;
@@ -202,7 +210,7 @@ public sealed partial class QuarantineViewModel : PageViewModel
             _services.Quarantine.Delete(row.Item.Id);
         }
 
-        Message = "Quarantine emptied.";
+        Message = L.T("quarantine.emptied");
     }
 
     private void Reload()
@@ -221,7 +229,7 @@ public sealed record EngineRow(string Name, string Description, Brush Brush);
 
 public sealed partial class SettingsViewModel(AppServices services, MainViewModel main) : PageViewModel
 {
-    public override string Title => "Settings";
+    public override NavigationTarget Target => NavigationTarget.Settings;
 
     public ObservableCollection<EngineRow> Engines { get; } = [];
 
@@ -237,7 +245,59 @@ public sealed partial class SettingsViewModel(AppServices services, MainViewMode
 
     public bool HasMalwareBazaarKey => services.Secrets.GetSecret(SecretNames.MalwareBazaarAuthKey) is not null;
 
-    public string TrustedText => $"{services.Settings.AllowedHashes.Count} file(s) you restored or marked as trusted.";
+    public string TrustedText => L.F("settings.trusted.count", services.Settings.AllowedHashes.Count);
+
+    public bool IsEnglish
+    {
+        get => Loc.Instance.Language == AppLanguage.English;
+        set
+        {
+            if (value)
+            {
+                main.SetLanguage("en");
+            }
+        }
+    }
+
+    public bool IsTurkish
+    {
+        get => Loc.Instance.Language == AppLanguage.Turkish;
+        set
+        {
+            if (value)
+            {
+                main.SetLanguage("tr");
+            }
+        }
+    }
+
+    public bool SimpleMode
+    {
+        get => services.Settings.SimpleMode;
+        set
+        {
+            services.UpdateSettings(s => s with { SimpleMode = value });
+            OnPropertyChanged();
+        }
+    }
+
+    public bool AutoScanOff
+    {
+        get => services.Settings.AutoScan == AutoScanFrequency.Off;
+        set => SetAutoScan(value, AutoScanFrequency.Off);
+    }
+
+    public bool AutoScanDaily
+    {
+        get => services.Settings.AutoScan == AutoScanFrequency.Daily;
+        set => SetAutoScan(value, AutoScanFrequency.Daily);
+    }
+
+    public bool AutoScanWeekly
+    {
+        get => services.Settings.AutoScan == AutoScanFrequency.Weekly;
+        set => SetAutoScan(value, AutoScanFrequency.Weekly);
+    }
 
     public bool HashLookups
     {
@@ -284,6 +344,28 @@ public sealed partial class SettingsViewModel(AppServices services, MainViewMode
         _ = RefreshEnginesAsync();
     }
 
+    /// <summary>Raised when the user asks to see the welcome guide again.</summary>
+    public event EventHandler? WelcomeRequested;
+
+    private void SetAutoScan(bool selected, AutoScanFrequency frequency)
+    {
+        if (!selected)
+        {
+            return;
+        }
+
+        services.UpdateSettings(s => s with { AutoScan = frequency });
+        OnPropertyChanged(nameof(AutoScanOff));
+        OnPropertyChanged(nameof(AutoScanDaily));
+        OnPropertyChanged(nameof(AutoScanWeekly));
+    }
+
+    [RelayCommand]
+    private void ShowWelcome() => WelcomeRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void Open(NavigationTarget target) => main.Navigate(target);
+
     [RelayCommand]
     private async Task RefreshEnginesAsync()
     {
@@ -329,7 +411,7 @@ public sealed partial class SettingsViewModel(AppServices services, MainViewMode
     [RelayCommand]
     private void AddExclusion()
     {
-        var dialog = new OpenFolderDialog { Title = "Choose a folder to leave out of scans" };
+        var dialog = new OpenFolderDialog { Title = L.T("settings.exclusions.dialog") };
         if (dialog.ShowDialog() == true)
         {
             services.UpdateSettings(s => s with { ScanExclusions = [.. s.ScanExclusions.Append(dialog.FolderName).Distinct(StringComparer.OrdinalIgnoreCase)] });
@@ -371,9 +453,10 @@ public sealed record Component(string Name, string License, string Url);
 
 public sealed partial class AboutViewModel : PageViewModel
 {
-    public override string Title => "About";
+    public override NavigationTarget Target => NavigationTarget.About;
 
-    public string Version { get; } = $"Version {AppServices.Version} for Windows";
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822", Justification = "Bound from XAML, which needs an instance property; the change is raised per instance.")]
+    public string Version => L.F("about.version", AppServices.Version);
 
     public IReadOnlyList<Credit> Credits { get; } =
     [
@@ -381,18 +464,56 @@ public sealed partial class AboutViewModel : PageViewModel
         new("github.com/mertyesileducation", "https://github.com/mertyesileducation"),
     ];
 
-    public IReadOnlyList<Component> Components { get; } =
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822", Justification = "Bound from XAML, which needs an instance property; the change is raised per instance.")]
+    public IReadOnlyList<Component> Components =>
     [
         new("ClamAV", "GPL-2.0", "https://www.clamav.net/"),
         new("YARA", "BSD-3-Clause", "https://virustotal.github.io/yara/"),
-        new("MalwareBazaar and URLhaus by abuse.ch", "Service terms", "https://abuse.ch/"),
-        new("VirusShare hash lists", "Service terms", "https://virusshare.com/"),
-        new("VirusTotal (with your own API key)", "Service terms", "https://www.virustotal.com/"),
+        new("MalwareBazaar & URLhaus (abuse.ch)", L.T("about.serviceTerms"), "https://abuse.ch/"),
+        new("VirusShare", L.T("about.serviceTerms"), "https://virusshare.com/"),
+        new("VirusTotal", L.T("about.serviceTerms"), "https://www.virustotal.com/"),
         new("SharpCompress", "MIT", "https://github.com/adamhathcock/sharpcompress"),
         new("DiscUtils", "MIT", "https://github.com/DiscUtils/DiscUtils"),
         new("WiX Toolset DTF", "MS-RL", "https://wixtoolset.org/"),
         new("CommunityToolkit.Mvvm", "MIT", "https://github.com/CommunityToolkit/dotnet"),
     ];
+
+    [RelayCommand]
+    private static void OpenLink(string url) => Shell.Open(url);
+}
+
+public sealed record HelpTopic(string Question, string Answer);
+
+/// <summary>Plain-language answers to the questions people ask most, for people who don't know computers well.</summary>
+public sealed partial class HelpViewModel(MainViewModel main) : PageViewModel
+{
+    public override NavigationTarget Target => NavigationTarget.Help;
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822", Justification = "Bound from XAML, which needs an instance property; the change is raised per instance.")]
+    public IReadOnlyList<HelpTopic> Topics =>
+    [
+        new(L.T("help.q.safe"), L.T("help.a.safe")),
+        new(L.T("help.q.threat"), L.T("help.a.threat")),
+        new(L.T("help.q.quarantine"), L.T("help.a.quarantine")),
+        new(L.T("help.q.restore"), L.T("help.a.restore")),
+        new(L.T("help.q.scan"), L.T("help.a.scan")),
+        new(L.T("help.q.dns"), L.T("help.a.dns")),
+        new(L.T("help.q.admin"), L.T("help.a.admin")),
+        new(L.T("help.q.engine"), L.T("help.a.engine")),
+        new(L.T("help.q.defender"), L.T("help.a.defender")),
+        new(L.T("help.q.privacy"), L.T("help.a.privacy")),
+        new(L.T("help.q.language"), L.T("help.a.language")),
+    ];
+
+    [RelayCommand]
+    private void QuickScan()
+    {
+        main.Navigate(NavigationTarget.Scan);
+        main.Scan.QuickScanCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private void ShowWelcome() => main.Settings.ShowWelcomeCommand.Execute(null);
 
     [RelayCommand]
     private static void OpenLink(string url) => Shell.Open(url);
