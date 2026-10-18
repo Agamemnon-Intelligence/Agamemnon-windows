@@ -8,9 +8,56 @@ Agamemnon is an open-source antivirus app created by **mertyesileducation** and 
 - malware scanning against **more than 50 million known threats** (new in 2.0)
 - archive and installer scanning
 - blocking unsafe downloads
+- **Turkish and English**, and a design anyone can use without computer knowledge (new in 3.0)
 
 It also warns you when something gets administrator rights. It is released under the
 [GPL-2.0](LICENSE).
+
+## New in 3.0
+
+- **Türkçe ve English.** The whole app (pages, notifications, tray menu) is available in Turkish
+  and English. Switch at any time with the *English / Türkçe* buttons at the bottom of the sidebar
+  or in Settings; everything changes at once, without restarting. On first start Agamemnon picks
+  Turkish on Turkish Windows and English elsewhere.
+- **Welcome guide.** Three short steps after installing or upgrading: choose the language, accept
+  the recommended protection with one click (download blocking, encrypted DNS with Cloudflare's
+  malware-blocking server, weekly scans, admin-rights alerts, start with Windows), and run the
+  first quick scan. People upgrading from 2.0 see their current settings, not the defaults. It
+  can be opened again from Settings or Help.
+- **One-click fixes.** When something is wrong, the dashboard lists it in plain words with a
+  button that fixes it (*Quarantine them*, *Turn on*, *How to fix*), plus *Fix all*.
+- **Protection switches on the dashboard** for download blocking, encrypted DNS and admin-rights
+  alerts, and a large *Scan now* button.
+- **Automatic scans.** A quick scan runs by itself every week (or every day, or never), and only
+  notifies you when it finds something.
+- **Simple mode.** Hides the technical DNS and Downloads pages from the sidebar; they stay one
+  click away in Settings. On by default for new installs.
+- **Help page** with short answers to the questions people ask most ("A threat was found. What
+  should I do?", "What is quarantine?", …).
+- Plainer scan choices with time estimates, a "what should I do?" line on every finding, and a
+  confirmation before deleting a quarantined file.
+
+### Upgrading from 2.0
+
+Run the 3.0 `Agamemnon-3.0.0-Setup.exe` or `.msi` over the installed 2.0; there is no need to
+uninstall first. The installer keeps the same upgrade code, so Windows replaces 2.0 in place. Your
+settings, API keys, trusted files, quarantine, activity log, encrypted-DNS settings and the
+downloaded threat database are all kept. During the upgrade the old service restores the
+network's DNS as it stops, and the new one switches encrypted DNS back on as soon as it starts.
+
+## Türkçe: hızlı başlangıç
+
+1. `Agamemnon-3.0.0-Setup.exe` dosyasını çalıştırın ve Windows'un sorduğu izni onaylayın.
+   Bilgisayarınızda 2.0 sürümü kuruluysa önce kaldırmanıza gerek yok: 3.0 onun üzerine kurulur,
+   ayarlarınız ve karantinanız korunur.
+2. Açılan karşılama rehberinde **Türkçe**'yi seçin, ardından **Önerilen ayarları kullan** düğmesine
+   basın.
+3. Hepsi bu. Saatin yanındaki kalkan **yeşilse** korunuyorsunuz. **Turuncu** veya **kırmızı** olursa
+   Agamemnon'u açın: Ana sayfa sorunu sade bir dille anlatır ve yanında onu düzelten bir düğme
+   gösterir.
+
+Dili istediğiniz zaman sol menünün altındaki **English / Türkçe** düğmeleriyle değiştirebilirsiniz.
+Sorularınız için uygulamadaki **Yardım** sayfasına bakın.
 
 This repository contains **Agamemnon for Windows** (`windows/`) and the **design tokens shared with
 the Mac app** (`design/`; the Mac app is
@@ -82,7 +129,7 @@ Agamemnon.exe (WPF, runs as you)            Agamemnon service (LocalSystem)
 | `windows/src/Agamemnon.Core` | Platform-neutral logic, unit-tested on any OS: DNS presets/rules, DoH/DoT/forwarder, leak test, scan engines and coordinator, offline threat database and feed updater, archive expansion, quarantine store, download watcher, IPC contract. |
 | `windows/src/Agamemnon.Platform.Windows` | Authenticode and catalog verification, Mark-of-the-Web, DPAPI, `DnsQuery`, Wi-Fi name, MSI/CAB extraction, Windows DNS configuration, the elevation monitor. |
 | `windows/src/Agamemnon.Service` | One executable for both Windows services, plus `--restore-dns` (run on uninstall). |
-| `windows/src/Agamemnon.App` | The WPF app. |
+| `windows/src/Agamemnon.App` | The WPF app. Text comes from `Agamemnon.Core/Localization` (English and Turkish side by side); the tests check every key the app uses exists in both languages with matching placeholders. |
 | `windows/rules` | Bundled YARA rules and their test samples. |
 | `windows/installer` | WiX v5 MSI. |
 
@@ -130,7 +177,7 @@ Requirements: .NET 10 SDK. The installer additionally needs Windows.
 ```sh
 cd windows
 dotnet build Agamemnon.Windows.slnx        # builds on Windows, macOS and Linux
-dotnet test tests/Agamemnon.Core.Tests     # 93 tests
+dotnet test tests/Agamemnon.Core.Tests     # 114 tests
 python3 rules/test_rules.py                # pip install yara-python
 ```
 
@@ -141,7 +188,7 @@ On Windows:
 ```powershell
 $env:AGAMEMNON_SIGN_PFX = 'C:\path\codesign.pfx'
 $env:AGAMEMNON_SIGN_PASSWORD = '…'
-./windows/build/package.ps1 -Version 2.0.0
+./windows/build/package.ps1 -Version 3.0.0
 ```
 
 The script:

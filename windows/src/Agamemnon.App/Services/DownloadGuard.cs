@@ -1,3 +1,4 @@
+using Agamemnon.App.Localization;
 using Agamemnon.Core.Downloads;
 using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Scanning;
@@ -73,7 +74,7 @@ public sealed class DownloadGuard(AppServices services, Notifier notifier) : IDi
 
         if (worst is null || worst.Severity == Severity.Info)
         {
-            services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Download, ActivityLevel.Good, $"{name} looks safe",
+            services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Download, ActivityLevel.Good, L.F("downloads.safe", name),
                 result.Errors.Count > 0 ? string.Join(" ", result.Errors) : null));
             return;
         }
@@ -84,23 +85,23 @@ public sealed class DownloadGuard(AppServices services, Notifier notifier) : IDi
             {
                 services.Quarantine.Add(path, result.Detections, "Download");
                 services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Download, ActivityLevel.Threat,
-                    $"Blocked {name}", $"{worst.Name} ({worst.Engine}). Moved to quarantine."));
-                notifier.Show(NotificationLevel.Threat, $"Blocked unsafe download: {name}",
-                    $"{worst.Name}. It's in quarantine, so it can't run.", NavigationTarget.Quarantine);
+                    L.F("downloads.blocked", name), L.F("downloads.blocked.detail", worst.Name, worst.Engine)));
+                notifier.Show(NotificationLevel.Threat, L.F("downloads.blocked.title", name),
+                    L.F("downloads.blocked.text", worst.Name), NavigationTarget.Quarantine);
             }
             catch (QuarantineException ex)
             {
                 services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Download, ActivityLevel.Threat,
-                    $"Unsafe download: {name}", $"{worst.Name}. {ex.Message}"));
-                notifier.Show(NotificationLevel.Threat, $"Unsafe download: {name}", $"{worst.Name}. Delete it, don't open it.", NavigationTarget.Downloads);
+                    L.F("downloads.unsafe.title", name), $"{worst.Name}. {ex.Message}"));
+                notifier.Show(NotificationLevel.Threat, L.F("downloads.unsafe.title", name), L.F("downloads.unsafe.text", worst.Name), NavigationTarget.Downloads);
             }
 
             return;
         }
 
         services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Download, ActivityLevel.Warning,
-            $"Check before opening: {name}", $"{worst.Name}. {worst.Detail}"));
-        notifier.Show(NotificationLevel.Warning, $"Check before opening: {name}", worst.Detail ?? worst.Name, NavigationTarget.Downloads);
+            L.F("downloads.check.title", name), $"{worst.Name}. {worst.Detail}"));
+        notifier.Show(NotificationLevel.Warning, L.F("downloads.check.title", name), worst.Detail ?? worst.Name, NavigationTarget.Downloads);
     }
 
     private static bool OnlyUnsignedFinding(FileScanResult result) =>

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Security.Principal;
 using System.Windows.Media;
+using Agamemnon.App.Localization;
 using Agamemnon.App.Services;
 using Agamemnon.Core.Dns;
 using Agamemnon.Core.Ipc;
@@ -14,9 +15,22 @@ public sealed partial class PresetOption(DnsPreset? preset, DnsViewModel owner) 
 {
     public string Id => preset?.Id ?? DnsPresets.CustomId;
 
-    public string Name => preset?.Name ?? "Custom server";
+    public string Name => preset?.Name ?? L.T("dns.custom.name");
 
-    public string Description => preset?.Description ?? "Any DNS-over-HTTPS or DNS-over-TLS server you trust.";
+    public string Description => preset?.Id switch
+    {
+        null => L.T("dns.custom.description"),
+        "cloudflare" => L.T("dns.preset.cloudflare"),
+        "quad9-unfiltered" => L.T("dns.preset.quad9Unfiltered"),
+        "mullvad" => L.T("dns.preset.mullvad"),
+        "google" => L.T("dns.preset.google"),
+        "controld" => L.T("dns.preset.controld"),
+        "nextdns" => L.T("dns.preset.nextdns"),
+        "cloudflare-security" => L.T("dns.preset.cloudflareSecurity"),
+        "quad9" => L.T("dns.preset.quad9"),
+        "adguard" => L.T("dns.preset.adguard"),
+        _ => preset.Description,
+    };
 
     public bool IsSelected
     {
@@ -31,13 +45,15 @@ public sealed partial class PresetOption(DnsPreset? preset, DnsViewModel owner) 
     }
 
     public void Refresh() => OnPropertyChanged(nameof(IsSelected));
+
+    public void OnLanguageChanged() => OnPropertyChanged(string.Empty);
 }
 
 public sealed partial class ResolverRow(ResolverObservation observation)
 {
     public string Address => observation.Address;
 
-    public string Owner => observation.Owner ?? (observation.Asn is int asn ? $"AS{asn}" : "Unknown network");
+    public string Owner => observation.Owner ?? (observation.Asn is int asn ? $"AS{asn}" : L.T("dns.leak.unknownNetwork"));
 }
 
 /// <summary>
@@ -62,7 +78,7 @@ public sealed partial class DnsViewModel : PageViewModel
         CustomPreset = new PresetOption(null, this);
     }
 
-    public override string Title => "DNS";
+    public override NavigationTarget Target => NavigationTarget.Dns;
 
     public IReadOnlyList<PresetOption> GeneralPresets { get; }
 
@@ -118,7 +134,7 @@ public sealed partial class DnsViewModel : PageViewModel
     public partial string? Error { get; set; }
 
     [ObservableProperty]
-    public partial string StatusText { get; set; } = "Connecting to the Agamemnon service…";
+    public partial string StatusText { get; set; } = L.T("dns.status.connecting");
 
     [ObservableProperty]
     public partial string? StatsText { get; set; }
@@ -151,15 +167,44 @@ public sealed partial class DnsViewModel : PageViewModel
 
     public string Summary => _status switch
     {
-        null => "Service not running",
+        null => L.T("dns.summary.noService"),
         { Mode: DnsMode.Native or DnsMode.Forwarder } s =>
             $"{s.ServerName} ({(s.Settings.Protocol == DnsProtocol.Https ? "DoH" : "DoT")})",
-        { Mode: DnsMode.Paused } s => $"Paused on {s.CurrentNetwork}",
-        { Mode: DnsMode.Error } => "Problem",
-        _ => "Off",
+        { Mode: DnsMode.Paused } s => L.F("dns.summary.paused", s.CurrentNetwork),
+        { Mode: DnsMode.Error } => L.T("common.problem"),
+        _ => L.T("common.off"),
     };
 
     public override void OnShown() => _ = RefreshAsync();
+
+    public override void OnLanguageChanged()
+    {
+        foreach (PresetOption option in GeneralPresets.Concat(FilteringPresets).Append(CustomPreset))
+        {
+            option.OnLanguageChanged();
+        }
+
+        if (_status is { } status)
+        {
+            ApplyStatus(status);
+        }
+        else if (!ServiceReady)
+        {
+            StatusText = L.T("dns.status.noService");
+        }
+
+        base.OnLanguageChanged();
+    }
+
+    /// <summary>The service's status in the app's language; errors keep the service's own (technical) message.</summary>
+    private static string Describe(DnsStatus status) => status.Mode switch
+    {
+        DnsMode.Native => L.F("dns.status.native", status.ServerName),
+        DnsMode.Forwarder => L.F("dns.status.forwarder", status.ServerName),
+        DnsMode.Paused => L.F("dns.status.paused", status.CurrentNetwork),
+        DnsMode.Off => L.T("dns.status.off"),
+        _ => status.Message,
+    };
 
     public void SelectPreset(string id)
     {
@@ -213,13 +258,13 @@ public sealed partial class DnsViewModel : PageViewModel
         }
 
         CurrentNetwork = status.CurrentNetwork;
-        StatusText = status.Message;
+        StatusText = Describe(status);
         Error = status.Mode == DnsMode.Error ? status.Message : null;
         StatsText = status.Mode switch
         {
-            DnsMode.Forwarder => $"Encrypted by Agamemnon's local resolver · {status.Queries:N0} lookups, {status.Failures:N0} failed"
-                                 + (status.LastError is { } e ? $" · last problem: {e}" : string.Empty),
-            DnsMode.Native => "Encrypted by Windows' built-in DNS-over-HTTPS client; plain-text fallback is off.",
+            DnsMode.Forwarder => L.F("dns.stats.forwarder", status.Queries, status.Failures)
+                                 + (status.LastError is { } e ? " · " + L.F("dns.stats.lastProblem", e) : string.Empty),
+            DnsMode.Native => L.T("dns.stats.native"),
             _ => null,
         };
         OnPropertyChanged(nameof(IsProtecting));
@@ -232,7 +277,7 @@ public sealed partial class DnsViewModel : PageViewModel
     {
         _status = null;
         ServiceReady = false;
-        StatusText = "The Agamemnon service isn't running, so DNS settings can't be changed.";
+        StatusText = L.T("dns.status.noService");
         OnPropertyChanged(nameof(IsProtecting));
         OnPropertyChanged(nameof(HasError));
         OnPropertyChanged(nameof(StatusBrush));
@@ -330,7 +375,7 @@ public sealed partial class DnsViewModel : PageViewModel
                 // A custom server can redirect every lookup on this PC, so Windows asks an administrator.
                 if (!await ElevatedActions.ApplyDnsAsync(settings).ConfigureAwait(true))
                 {
-                    Error = "The custom server wasn't applied: administrator approval was cancelled or failed.";
+                    Error = L.T("dns.error.customNotApplied");
                 }
 
                 await RefreshAsync().ConfigureAwait(true);
@@ -339,7 +384,7 @@ public sealed partial class DnsViewModel : PageViewModel
 
             ApplyStatus(await _services.Service.CallAsync<DnsStatus>(IpcMethods.ApplyDns, settings, CancellationToken.None).ConfigureAwait(true));
             _services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Dns, ActivityLevel.Info,
-                settings.Enabled ? $"Encrypted DNS: {Summary}" : "Encrypted DNS turned off"));
+                settings.Enabled ? L.F("activity.dns.on", Summary) : L.T("activity.dns.off")));
         }
         catch (IpcException ex)
         {
@@ -351,6 +396,23 @@ public sealed partial class DnsViewModel : PageViewModel
             IsBusy = false;
             _main.RefreshStatus();
         }
+    }
+
+    /// <summary>Turns encrypted DNS on with the given server in a single change (used by the welcome guide).</summary>
+    public Task TurnOnAsync(string presetId)
+    {
+        _loading = true;
+        try
+        {
+            SelectPreset(presetId);
+            IsEnabled = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        return ApplyAsync();
     }
 
     [RelayCommand]
@@ -366,7 +428,7 @@ public sealed partial class DnsViewModel : PageViewModel
         string? domain = DnsValidation.NormalizeDomain(NewDomain);
         if (domain is null)
         {
-            Error = $"“{NewDomain}” isn't a valid domain name.";
+            Error = L.F("dns.error.invalidDomain", NewDomain);
             return Task.CompletedTask;
         }
 
@@ -409,7 +471,7 @@ public sealed partial class DnsViewModel : PageViewModel
     {
         if (CurrentNetwork is null)
         {
-            Error = "This PC isn't connected to a Wi-Fi network right now.";
+            Error = L.T("dns.error.noWifi");
             return Task.CompletedTask;
         }
 
@@ -427,7 +489,7 @@ public sealed partial class DnsViewModel : PageViewModel
     [RelayCommand]
     private async Task RunLeakTestAsync()
     {
-        LeakSummary = "Testing…";
+        LeakSummary = L.T("dns.leak.testing");
         LeakBrush = StatusBrushes.Neutral;
         LeakResolvers.Clear();
         DnsServerConfig? expected = null;
@@ -443,7 +505,16 @@ public sealed partial class DnsViewModel : PageViewModel
         }
 
         LeakTestResult result = await new LeakTest(new WindowsTxtResolver()).RunAsync(expected, CancellationToken.None).ConfigureAwait(true);
-        LeakSummary = result.Summary;
+        LeakSummary = result.Verdict switch
+        {
+            LeakVerdict.Pass when expected is not null => L.F("dns.leak.pass", expected.Name),
+            LeakVerdict.Leak when expected is null => L.T("dns.leak.off"),
+            LeakVerdict.Leak => L.F("dns.leak.leak", string.Join(", ", result.Resolvers
+                .Where(r => r.Asn is not int asn || !expected.KnownAsns.Contains(asn))
+                .Select(r => r.Owner ?? r.Address)), expected.Name),
+            LeakVerdict.Inconclusive when expected is not null => L.F("dns.leak.inconclusive", result.Resolvers.Count, expected.Name),
+            _ => result.Summary,
+        };
         LeakBrush = result.Verdict switch
         {
             LeakVerdict.Pass => StatusBrushes.For(ProtectionLevel.Protected),

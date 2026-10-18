@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using Agamemnon.App.Localization;
 using Agamemnon.App.Services;
 using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Scanning;
@@ -21,10 +22,19 @@ public sealed partial class FindingViewModel(FileScanResult result, ScanViewMode
 
     public string VerdictText => result.Verdict switch
     {
-        Severity.Malicious => "Threat",
-        Severity.Suspicious => "Suspicious",
-        Severity.Info => "Note",
-        _ => "Couldn't scan",
+        Severity.Malicious => L.T("finding.threat"),
+        Severity.Suspicious => L.T("finding.suspicious"),
+        Severity.Info => L.T("finding.note"),
+        _ => L.T("finding.unscanned"),
+    };
+
+    /// <summary>What to do about it, in plain words.</summary>
+    public string Advice => result.Verdict switch
+    {
+        Severity.Malicious => L.T("finding.threat.advice"),
+        Severity.Suspicious => L.T("finding.suspicious.advice"),
+        Severity.Info => L.T("finding.note.advice"),
+        _ => L.T("finding.unscanned.advice"),
     };
 
     public IReadOnlyList<string> Lines =>
@@ -61,7 +71,7 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
 {
     private CancellationTokenSource? _cancel;
 
-    public override string Title => "Scan";
+    public override NavigationTarget Target => NavigationTarget.Scan;
 
     public ObservableCollection<FindingViewModel> Findings { get; } = [];
 
@@ -72,7 +82,7 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
     public partial bool IsScanning { get; set; }
 
     [ObservableProperty]
-    public partial string ProgressText { get; set; } = "Choose what to scan.";
+    public partial string ProgressText { get; set; } = L.T("scan.choose");
 
     [ObservableProperty]
     public partial string? CurrentPath { get; set; }
@@ -86,6 +96,25 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
 
     private bool CanStart => !IsScanning;
 
+    /// <summary>The display name of a scan kind as stored in the settings ("Quick", "Full", "Custom", "Automatic").</summary>
+    public static string KindName(string? kind) => kind switch
+    {
+        "Quick" => L.T("scan.kind.quick"),
+        "Full" => L.T("scan.kind.full"),
+        "Automatic" => L.T("scan.kind.automatic"),
+        _ => L.T("scan.kind.custom"),
+    };
+
+    /// <summary>The scheduled quick scan. It only interrupts the user when it finds something.</summary>
+    public async Task RunAutomaticScanAsync()
+    {
+        int threats = await RunAsync("Automatic", QuickScanLocations()).ConfigureAwait(true);
+        if (threats > 0)
+        {
+            main.NotifyAutomaticScanThreats(threats);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanStart))]
     private Task QuickScan() => RunAsync("Quick", QuickScanLocations());
 
@@ -95,14 +124,14 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
     [RelayCommand(CanExecute = nameof(CanStart))]
     private Task ScanFiles()
     {
-        var dialog = new OpenFileDialog { Title = "Choose files to scan", Multiselect = true };
+        var dialog = new OpenFileDialog { Title = L.T("scan.dialog.files"), Multiselect = true };
         return dialog.ShowDialog() == true ? RunAsync("Custom", dialog.FileNames) : Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private Task ScanFolder()
     {
-        var dialog = new OpenFolderDialog { Title = "Choose folders to scan", Multiselect = true };
+        var dialog = new OpenFolderDialog { Title = L.T("scan.dialog.folders"), Multiselect = true };
         return dialog.ShowDialog() == true ? RunAsync("Custom", dialog.FolderNames) : Task.CompletedTask;
     }
 
@@ -127,13 +156,13 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
         try
         {
             services.Quarantine.Add(path, finding.Result.Detections);
-            finding.Status = "Moved to quarantine";
+            finding.Status = L.T("finding.status.quarantined");
         }
         catch (QuarantineException ex) when (ex.InnerException is UnauthorizedAccessException)
         {
             // Files under Program Files or Windows need an administrator to move them.
             finding.Status = await ElevatedActions.QuarantineAsync(path).ConfigureAwait(true)
-                ? "Moved to quarantine"
+                ? L.T("finding.status.quarantined")
                 : null;
             if (finding.Status is null)
             {
@@ -149,7 +178,7 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
         if (finding.Status is not null)
         {
             services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Quarantine, ActivityLevel.Good,
-                $"Quarantined {finding.FileName}", finding.Result.Detections.Count > 0 ? finding.Result.Detections[0].Name : null));
+                L.F("activity.quarantined", finding.FileName), finding.Result.Detections.Count > 0 ? finding.Result.Detections[0].Name : null));
         }
 
         main.RefreshStatus();
@@ -158,7 +187,7 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
     public void Trust(FindingViewModel finding)
     {
         services.Trust(finding.Result.Sha256);
-        finding.Status = "Trusted: won't be flagged again";
+        finding.Status = L.T("finding.status.trusted");
         OnPropertyChanged(nameof(UnresolvedThreats));
         main.RefreshStatus();
     }
@@ -179,24 +208,26 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
         return [.. candidates.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
-    private async Task RunAsync(string kind, IReadOnlyList<string> paths)
+    /// <summary>Runs a scan and shows its results; returns the number of threats found.</summary>
+    private async Task<int> RunAsync(string kind, IReadOnlyList<string> paths)
     {
-        if (paths.Count == 0)
+        // Commands started from the tray or the welcome guide can arrive while a scan is running.
+        if (paths.Count == 0 || IsScanning)
         {
-            return;
+            return 0;
         }
 
         IsScanning = true;
         Findings.Clear();
         Warnings.Clear();
         Summary = null;
-        ProgressText = $"{kind} scan starting…";
+        ProgressText = L.F("scan.starting", KindName(kind));
         OnPropertyChanged(nameof(HasFindings));
         using var cancel = new CancellationTokenSource();
         _cancel = cancel;
         var progress = new Progress<ScanProgress>(p =>
         {
-            ProgressText = $"{p.FilesScanned:N0} files scanned · {p.ThreatsFound} threat(s)";
+            ProgressText = L.F("scan.progress", p.FilesScanned, p.ThreatsFound);
             if (p.CurrentPath is not null)
             {
                 CurrentPath = p.CurrentPath;
@@ -223,10 +254,10 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
             }
 
             int threats = report.ThreatCount;
-            ProgressText = $"{report.FilesScanned:N0} files scanned in {(report.FinishedAt - report.StartedAt).TotalMinutes:0.#} min";
+            ProgressText = L.F("scan.finished", report.FilesScanned, (report.FinishedAt - report.StartedAt).TotalMinutes);
             Summary = report.Cancelled
-                ? "Scan stopped. Results so far are below."
-                : threats == 0 ? "No threats found." : $"{threats} threat(s) found. Move them to quarantine to make them harmless.";
+                ? L.T("scan.summary.stopped")
+                : threats == 0 ? L.T("scan.summary.clean") : L.F("scan.summary.threats", threats);
             if (!report.Cancelled)
             {
                 services.UpdateSettings(s => s with
@@ -238,8 +269,11 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
                 });
                 services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Scan,
                     threats == 0 ? ActivityLevel.Good : ActivityLevel.Threat,
-                    $"{kind} scan: {(threats == 0 ? "no threats" : $"{threats} threat(s)")}", $"{report.FilesScanned:N0} files scanned"));
+                    threats == 0 ? L.F("activity.scan.clean", KindName(kind)) : L.F("activity.scan.threats", KindName(kind), threats),
+                    L.F("activity.scan.files", report.FilesScanned)));
             }
+
+            return report.Cancelled ? 0 : threats;
         }
         finally
         {

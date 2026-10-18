@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Agamemnon.App.Localization;
 using Agamemnon.App.Themes;
 
 namespace Agamemnon.App.Services;
@@ -15,6 +16,7 @@ public enum NavigationTarget
     Quarantine,
     Settings,
     About,
+    Help,
 }
 
 public enum NotificationLevel
@@ -45,25 +47,31 @@ public sealed partial class TrayIcon : IDisposable
     private readonly ToolStripMenuItem _protectionItem;
     private readonly ToolStripMenuItem _dnsItem;
     private readonly ToolStripMenuItem _dnsToggle;
+    private readonly ToolStripMenuItem _openItem;
+    private readonly ToolStripMenuItem _scanItem;
+    private readonly ToolStripMenuItem _quitItem;
     private NavigationTarget _balloonTarget = NavigationTarget.Dashboard;
     private IntPtr _iconHandle;
 
     public TrayIcon()
     {
-        _protectionItem = new ToolStripMenuItem("Protection: checking…") { Enabled = false };
-        _dnsItem = new ToolStripMenuItem("Encrypted DNS: checking…") { Enabled = false };
-        _dnsToggle = new ToolStripMenuItem("Turn encrypted DNS on", null, (_, _) => ToggleDnsRequested?.Invoke(this, EventArgs.Empty));
+        _protectionItem = new ToolStripMenuItem { Enabled = false };
+        _dnsItem = new ToolStripMenuItem { Enabled = false };
+        _dnsToggle = new ToolStripMenuItem(string.Empty, null, (_, _) => ToggleDnsRequested?.Invoke(this, EventArgs.Empty));
+        _openItem = new ToolStripMenuItem(string.Empty, null, (_, _) => OpenRequested?.Invoke(this, NavigationTarget.Dashboard));
+        _scanItem = new ToolStripMenuItem(string.Empty, null, (_, _) => QuickScanRequested?.Invoke(this, EventArgs.Empty));
+        _quitItem = new ToolStripMenuItem(string.Empty, null, (_, _) => QuitRequested?.Invoke(this, EventArgs.Empty));
         var menu = new ContextMenuStrip { Renderer = new DarkRenderer(), ShowImageMargin = false };
         menu.Items.AddRange(
         [
             _protectionItem,
             _dnsItem,
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Open Agamemnon", null, (_, _) => OpenRequested?.Invoke(this, NavigationTarget.Dashboard)),
-            new ToolStripMenuItem("Quick scan", null, (_, _) => QuickScanRequested?.Invoke(this, EventArgs.Empty)),
+            _openItem,
+            _scanItem,
             _dnsToggle,
             new ToolStripSeparator(),
-            new ToolStripMenuItem("Quit Agamemnon", null, (_, _) => QuitRequested?.Invoke(this, EventArgs.Empty)),
+            _quitItem,
         ]);
         foreach (ToolStripItem item in menu.Items)
         {
@@ -79,7 +87,7 @@ public sealed partial class TrayIcon : IDisposable
             }
         };
         _icon.BalloonTipClicked += (_, _) => OpenRequested?.Invoke(this, _balloonTarget);
-        Update(new TrayState(ProtectionLevel.Protected, "Starting…", false, "Checking…"));
+        Update(new TrayState(ProtectionLevel.Protected, L.T("tray.starting"), false, L.T("tray.checking")));
     }
 
     public event EventHandler<NavigationTarget>? OpenRequested;
@@ -101,11 +109,14 @@ public sealed partial class TrayIcon : IDisposable
         SetIcon(ColorTranslator.FromHtml(color), state.DnsOn);
 
         // NotifyIcon.Text is limited to 127 characters.
-        string tip = $"Agamemnon: {state.ProtectionText}\nEncrypted DNS: {state.DnsText}";
+        string tip = $"Agamemnon: {state.ProtectionText}\n{L.T("tray.dns")}: {state.DnsText}";
         _icon.Text = tip.Length > 127 ? tip[..127] : tip;
-        _protectionItem.Text = $"Protection: {state.ProtectionText}";
-        _dnsItem.Text = $"Encrypted DNS: {state.DnsText}";
-        _dnsToggle.Text = state.DnsOn ? "Turn encrypted DNS off" : "Turn encrypted DNS on";
+        _protectionItem.Text = $"{L.T("tray.protection")}: {state.ProtectionText}";
+        _dnsItem.Text = $"{L.T("tray.dns")}: {state.DnsText}";
+        _dnsToggle.Text = state.DnsOn ? L.T("tray.dnsOff") : L.T("tray.dnsOn");
+        _openItem.Text = L.T("tray.open");
+        _scanItem.Text = L.T("tray.quickScan");
+        _quitItem.Text = L.T("tray.quit");
     }
 
     public void Notify(NotificationLevel level, string title, string text, NavigationTarget target)

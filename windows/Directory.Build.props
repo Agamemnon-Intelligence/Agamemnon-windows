@@ -10,7 +10,7 @@
     <NoWarn>$(NoWarn);CA1859;CA1848;CA1873</NoWarn>
     <!-- Lets the Windows projects compile (not run) on Linux/macOS CI and dev machines. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>2.0.0</Version>
+    <Version>3.0.0</Version>
     <Company>Agamemnon contributors</Company>
     <Product>Agamemnon</Product>
     <Copyright>Copyright © Agamemnon contributors. Licensed under GPL-2.0.</Copyright>

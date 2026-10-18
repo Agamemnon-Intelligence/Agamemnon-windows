@@ -50,7 +50,7 @@ public sealed class AppServices : IDisposable
     }
 
     public static string Version =>
-        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "2.0.0";
+        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "3.0.0";
 
     public event EventHandler? SettingsChanged;
 
