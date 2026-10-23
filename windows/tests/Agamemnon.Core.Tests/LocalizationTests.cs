@@ -11,7 +11,7 @@ public partial class TranslationTests
     // Short texts that are the same in both languages: names and technical terms.
     private static readonly HashSet<string> SameInBothLanguages =
     [
-        "nav.dns", "nav.dnsStatus", "settings.mbKey.title",
+        "nav.dns", "nav.dnsStatus", "settings.mbKey.title", "checkup.smartscreen.title", "checkup.software.windowsUpdate",
     ];
 
     [Fact]
@@ -69,6 +69,24 @@ public partial class TranslationTests
         Assert.True(missing.Length == 0, "missing translations: " + string.Join(", ", missing));
     }
 
+    /// <summary>The checkup builds its keys from each check's id and state, so the pattern above can't see them.</summary>
+    [Fact]
+    public void Every_security_check_has_its_texts()
+    {
+        foreach (Agamemnon.Core.Checkup.SecurityCheck check in Agamemnon.Core.Checkup.SecurityCheckup.Evaluate(new Agamemnon.Core.Checkup.SecuritySnapshot(), DateTimeOffset.Now))
+        {
+            foreach (string part in new[] { "title", "good", "warning", "bad" })
+            {
+                Assert.True(Translations.All.ContainsKey($"checkup.{check.Id}.{part}"), $"checkup.{check.Id}.{part} is missing");
+            }
+        }
+
+        foreach (Agamemnon.Core.Startup.StartupLocation location in Enum.GetValues<Agamemnon.Core.Startup.StartupLocation>())
+        {
+            Assert.True(Translations.All.ContainsKey($"checkup.startup.location.{location}"), $"checkup.startup.location.{location} is missing");
+        }
+    }
+
     [Fact]
     public void Missing_keys_show_the_key_instead_of_nothing() =>
         Assert.Equal("no.such.key", Translations.Get(AppLanguage.Turkish, "no.such.key"));
@@ -115,7 +133,7 @@ public partial class TranslationTests
     [GeneratedRegex(@"\{l:Tr ([\w.]+)\}")]
     private static partial Regex XamlKey();
 
-    [GeneratedRegex(@"""((?:about|activity|admin|app|autoScan|common|dashboard|dns|downloads|finding|help|nav|problem|quarantine|scan|settings|status|tray|welcome)\.[\w.]+)(?<!\.json)""")]
+    [GeneratedRegex(@"""((?:about|activity|admin|app|autoScan|checkup|common|dashboard|dns|downloads|finding|help|nav|problem|protection|quarantine|scan|scanlog|settings|status|tamper|tray|update|welcome)\.[\w.]+)(?<!\.json)""")]
     private static partial Regex CodeKey();
 }
 

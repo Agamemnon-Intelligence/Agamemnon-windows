@@ -62,6 +62,7 @@
       <ComponentGroupRef Id="MachineData" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="EventLogSource" />
+      <ComponentRef Id="ExplorerScanVerb" />
     </Feature>
 
     <!-- Everything published, except the two executables declared explicitly below. -->
@@ -84,7 +85,7 @@
         <ServiceInstall Id="AgamemnonService"
                         Name="Agamemnon"
                         DisplayName="Agamemnon Protection"
-                        Description="Applies Agamemnon's encrypted DNS settings and reports programs that gain administrator rights."
+                        Description="Applies Agamemnon's encrypted DNS settings, reports programs that gain administrator rights, watches the hosts file and Defender exclusions, and reads Windows' security settings for the Security Checkup."
                         Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" Vital="yes">
           <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
                               RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
@@ -128,6 +129,16 @@
       <Shortcut Id="AgamemnonShortcut" Name="Agamemnon" Description="Open-source antivirus"
                 Target="[#AgamemnonExe]" WorkingDirectory="INSTALLFOLDER" Icon="AgamemnonIcon" />
       <RegistryValue Root="HKLM" Key="Software\Agamemnon" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- 4.0: "Scan with Agamemnon" on files and folders in File Explorer (Windows 11: under "Show more options"). -->
+    <Component Id="ExplorerScanVerb" Directory="INSTALLFOLDER" Guid="C41E8D02-7B5A-4F36-9E1D-2A7C5B8F0E61">
+      <RegistryValue Root="HKLM" Key="Software\Classes\*\shell\AgamemnonScan" Name="MUIVerb" Type="string" Value="Scan with Agamemnon" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\*\shell\AgamemnonScan" Name="Icon" Type="string" Value="&quot;[#AgamemnonExe]&quot;,0" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\*\shell\AgamemnonScan\command" Type="string" Value="&quot;[#AgamemnonExe]&quot; --scan &quot;%1&quot;" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Directory\shell\AgamemnonScan" Name="MUIVerb" Type="string" Value="Scan with Agamemnon" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Directory\shell\AgamemnonScan" Name="Icon" Type="string" Value="&quot;[#AgamemnonExe]&quot;,0" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Directory\shell\AgamemnonScan\command" Type="string" Value="&quot;[#AgamemnonExe]&quot; --scan &quot;%1&quot;" />
     </Component>
 
     <!-- Event Log source for the services (LocalService may not create one itself). -->

@@ -12,6 +12,15 @@ public enum ActivityKind
     Scan,
     Quarantine,
     Dns,
+
+    // 4.0
+    RealTime,
+    Ransomware,
+    Usb,
+    Paste,
+    Privacy,
+    Startup,
+    Tamper,
 }
 
 public enum ActivityLevel

@@ -164,7 +164,7 @@ public class SecurityCheckupTests
             WindowsBuild = 26200, Edition = "Professional", DefenderRealTime = true, DefenderSignaturesUpdated = Now.AddHours(-3),
             TamperProtection = true, ControlledFolderAccess = true, SmartScreen = true, FirewallProfilesOn = 3, UacEnabled = true,
             UacSilentForAdmins = false, SystemDriveEncrypted = true, SecureBoot = true, MemoryIntegrity = true, LsaProtection = true,
-            RemoteDesktop = false, Smb1 = false, AutomaticUpdatesDisabledByPolicy = false, AutoRunDisabled = true, Wifi = WifiSecurity.Wpa3,
+            RemoteDesktop = false, Smb1 = false, AutomaticUpdatesDisabledByPolicy = false, Wifi = WifiSecurity.Wpa3,
         };
         IReadOnlyList<SecurityCheck> checks = SecurityCheckup.Evaluate(snapshot, Now);
         Assert.All(checks, c => Assert.Equal(CheckState.Good, c.State));
@@ -379,4 +379,16 @@ public class ScanHistoryTests
         Assert.Contains("YARA: Test", text, StringComparison.Ordinal);
         Assert.Contains("ClamAV skipped", text, StringComparison.Ordinal);
     }
+}
+
+public class OnAccessFilterTests
+{
+    [Theory]
+    [InlineData(@"C:\Users\a\Desktop\invoice.exe", true)]
+    [InlineData(@"C:\Users\a\AppData\Local\Temp\x\run.ps1", true)]
+    [InlineData(@"C:\Users\a\Documents\letter.docx", false)]
+    [InlineData(@"C:\Users\a\src\app\node_modules\pkg\index.js", false)]
+    [InlineData(@"C:\Users\a\AppData\Local\Google\Chrome\User Data\Default\Code Cache\js\a.js", false)]
+    public void Picks_files_that_can_run(string path, bool expected) =>
+        Assert.Equal(expected, OnAccessFilter.ShouldScan(path));
 }

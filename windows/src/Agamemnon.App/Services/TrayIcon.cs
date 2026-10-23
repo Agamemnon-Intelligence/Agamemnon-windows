@@ -17,6 +17,10 @@ public enum NavigationTarget
     Settings,
     About,
     Help,
+
+    // 4.0
+    Protection,
+    Checkup,
 }
 
 public enum NotificationLevel

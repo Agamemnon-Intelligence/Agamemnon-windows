@@ -48,6 +48,22 @@ public sealed partial class DashboardViewModel : PageViewModel
         set => _main.Settings.AdminRightsAlerts = value;
     }
 
+    public bool RansomwareShield
+    {
+        get => _services.Settings.RansomwareShield;
+        set => _main.RealTime.RansomwareShield = value;
+    }
+
+    public bool PasteGuard
+    {
+        get => _services.Settings.PasteGuard;
+        set => _main.RealTime.PasteGuard = value;
+    }
+
+    public bool UpdateAvailable => _main.Updates.Available is not null;
+
+    public string UpdateText => _main.Updates.Available is { } u ? L.F("update.available", u.Version.ToString(3), Services.AppServices.Version) : string.Empty;
+
     public bool HasProblems => _main.Problems.Count > 0;
 
     public bool CanFixAll => _main.Problems.Count > 1;
@@ -123,6 +139,10 @@ public sealed partial class DashboardViewModel : PageViewModel
         OnPropertyChanged(nameof(AutoScanText));
         OnPropertyChanged(nameof(DownloadProtection));
         OnPropertyChanged(nameof(AdminRightsAlerts));
+        OnPropertyChanged(nameof(RansomwareShield));
+        OnPropertyChanged(nameof(PasteGuard));
+        OnPropertyChanged(nameof(UpdateAvailable));
+        OnPropertyChanged(nameof(UpdateText));
         OnPropertyChanged(nameof(HasProblems));
         OnPropertyChanged(nameof(CanFixAll));
     }

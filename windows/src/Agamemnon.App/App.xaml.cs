@@ -31,6 +31,7 @@ public partial class App : Application
     private AppServices? _services;
     private TrayIcon? _tray;
     private DownloadGuard? _downloads;
+    private RealTimeGuards? _guards;
     private MainViewModel? _model;
     private MainWindow? _window;
     private bool _upgradedFrom2;
@@ -53,9 +54,17 @@ public partial class App : Application
             return;
         }
 
+        // "Scan with Agamemnon" from File Explorer's right-click menu: Agamemnon.exe --scan <paths>.
+        string[] scanPaths = args.Length > 1 && args[0] == ScanRequests.Switch ? args[1..] : [];
+
         _instance = new Mutex(initiallyOwned: true, InstanceName, out bool firstInstance);
         if (!firstInstance)
         {
+            if (scanPaths.Length > 0)
+            {
+                ScanRequests.Queue(scanPaths);
+            }
+
             // Already running in the notification area: ask it to show its window.
             try
             {
@@ -77,7 +86,8 @@ public partial class App : Application
         _tray = new TrayIcon();
         var notifier = new Notifier(_tray);
         _downloads = new DownloadGuard(_services, notifier);
-        _model = new MainViewModel(_services, _tray, notifier, _downloads);
+        _guards = new RealTimeGuards(_services, notifier);
+        _model = new MainViewModel(_services, _tray, notifier, _downloads, _guards, new UpdateService(_services));
 
         _tray.OpenRequested += (_, target) => ShowMain(target);
         _tray.QuickScanRequested += (_, _) =>
@@ -91,12 +101,20 @@ public partial class App : Application
 
         _upgradedFrom2 = FirstRunSetup(_services);
         _downloads.Restart();
+        _guards.Restart();
         _ = _model.ListenToServiceAsync(_lifetime.Token);
         _ = _model.MonitorEnginesAsync(_lifetime.Token);
         _ = _model.RunScheduledScansAsync(_lifetime.Token);
+        _ = _model.RunPeriodicChecksAsync(_lifetime.Token);
         ListenForActivation();
 
-        if (!args.Contains("--background"))
+        if (scanPaths.Length > 0)
+        {
+            ScanRequests.Queue(scanPaths);
+            ShowMain(NavigationTarget.Scan);
+            RunQueuedScans();
+        }
+        else if (!args.Contains("--background"))
         {
             ShowMain(NavigationTarget.Dashboard);
         }
@@ -106,6 +124,7 @@ public partial class App : Application
     {
         _lifetime.Cancel();
         _downloads?.Dispose();
+        _guards?.Dispose();
         _tray?.Dispose();
         _services?.Dispose();
         _activate?.Dispose();
@@ -150,7 +169,7 @@ public partial class App : Application
         _window.Show();
         _window.Activate();
 
-        if (_services?.Settings.WelcomeCompleted == false)
+        if (_services?.Settings.WelcomeVersion < WelcomeViewModel.CurrentWelcome)
         {
             ShowWelcome();
         }
@@ -194,12 +213,33 @@ public partial class App : Application
             {
                 if (WaitHandle.WaitAny([_activate, _lifetime.Token.WaitHandle]) == 0)
                 {
-                    Dispatcher.BeginInvoke(() => ShowMain(NavigationTarget.Dashboard));
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (ScanRequests.HasPending)
+                        {
+                            ShowMain(NavigationTarget.Scan);
+                            RunQueuedScans();
+                        }
+                        else
+                        {
+                            ShowMain(NavigationTarget.Dashboard);
+                        }
+                    });
                 }
             }
         })
         { IsBackground = true, Name = "Agamemnon activation" };
         thread.Start();
+    }
+
+    /// <summary>Scans files and folders sent from File Explorer (several requests become one scan).</summary>
+    private void RunQueuedScans()
+    {
+        IReadOnlyList<string> paths = ScanRequests.TakeAll();
+        if (_model is not null && paths.Count > 0)
+        {
+            _ = _model.Scan.ScanDroppedAsync(paths);
+        }
     }
 
     private void Quit()

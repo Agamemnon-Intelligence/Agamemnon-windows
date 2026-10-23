@@ -20,6 +20,8 @@
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:AboutViewModel}"><v:AboutView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:HelpViewModel}"><v:HelpView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ProtectionViewModel}"><v:ProtectionView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CheckupViewModel}"><v:CheckupView /></DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -65,6 +67,10 @@
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Dashboard}" />
                     <RadioButton Style="{StaticResource NavItem}" Tag="&#xE721;" Content="{l:Tr nav.scan}" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Scan}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE83D;" Content="{l:Tr nav.protection}" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Protection}" />
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE9D5;" Content="{l:Tr nav.checkup}" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="{x:Static svc:NavigationTarget.Checkup}" />
                     <!-- Simple mode hides the two pages with technical options; their switches stay on the dashboard. -->
                     <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="{l:Tr nav.dns}" GroupName="nav"
                                  Visibility="{Binding ShowAdvancedPages, Converter={StaticResource Visible}}"

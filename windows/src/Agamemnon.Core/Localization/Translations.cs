@@ -14,6 +14,15 @@ public enum AppLanguage
 /// </summary>
 public static partial class Translations
 {
+    static Translations()
+    {
+        // 4.0's texts live in their own file, grouped by page like the rest.
+        foreach ((string key, (string En, string Tr) text) in Table40)
+        {
+            Table.Add(key, text);
+        }
+    }
+
     public static IReadOnlyDictionary<string, (string En, string Tr)> All => Table;
 
     /// <summary>The text for <paramref name="key"/>, or the key itself if it is missing (so a gap is visible, not blank).</summary>

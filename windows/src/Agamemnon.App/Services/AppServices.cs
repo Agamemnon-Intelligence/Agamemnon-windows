@@ -6,6 +6,7 @@ using Agamemnon.Core.Quarantine;
 using Agamemnon.Core.Reputation;
 using Agamemnon.Core.Scanning;
 using Agamemnon.Core.Settings;
+using Agamemnon.Core.Updates;
 using Agamemnon.Platform.Windows;
 
 namespace Agamemnon.App.Services;
@@ -20,6 +21,7 @@ public sealed class AppServices : IDisposable
     public AppServices()
     {
         _settings = _settingsStore.Load();
+        LastSavedSettings = ReadSettingsFile();
         Directory.CreateDirectory(AgamemnonPaths.UserRules);
         Directory.CreateDirectory(AgamemnonPaths.ScanWork);
 
@@ -44,13 +46,17 @@ public sealed class AppServices : IDisposable
         ]);
         ThreatDatabase = new OfflineHashEngine(new ThreatIntelStore(AgamemnonPaths.ThreatIntelData));
         Signatures = new CodeSignatureEngine(new AuthenticodeVerifier());
+        Amsi = new AmsiEngine();
+        HiddenScripts = new HiddenScriptEngine();
+        ScanLogs = new ScanHistory(Path.Combine(AgamemnonPaths.UserLocalData, "scan-logs.json"));
+        Updates = new AgamemnonUpdateChecker(Http);
         DownloadSource = new DownloadSourceEngine(MalwareHosts);
         Expander = ArchiveExpander.CreateDefault([new MsiExtractor(), new CabExtractor()]);
         Service = new IpcClient(verifyServer: PipeServerCheck.IsService);
     }
 
     public static string Version =>
-        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "3.0.0";
+        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "4.0.0";
 
     public event EventHandler? SettingsChanged;
 
@@ -77,6 +83,21 @@ public sealed class AppServices : IDisposable
 
     public DownloadSourceEngine DownloadSource { get; }
 
+    /// <summary>4.0: Windows' own antivirus (normally Microsoft Defender) as one more engine.</summary>
+    public AmsiEngine Amsi { get; }
+
+    /// <summary>4.0: decodes scripts that hide their commands.</summary>
+    public HiddenScriptEngine HiddenScripts { get; }
+
+    public ScanHistory ScanLogs { get; }
+
+    public AgamemnonUpdateChecker Updates { get; }
+
+    public string SettingsPath => _settingsStore.Path;
+
+    /// <summary>The settings file exactly as Agamemnon last wrote it, so the settings lock can tell its own changes from others'.</summary>
+    public string? LastSavedSettings { get; private set; }
+
     public ArchiveExpander Expander { get; }
 
     public IpcClient Service { get; }
@@ -98,6 +119,7 @@ public sealed class AppServices : IDisposable
         {
             _settings = change(_settings);
             _settingsStore.Save(_settings);
+            LastSavedSettings = ReadSettingsFile();
         }
 
         SettingsChanged?.Invoke(this, EventArgs.Empty);
@@ -105,7 +127,7 @@ public sealed class AppServices : IDisposable
 
     public ScanCoordinator CreateScanner(bool forDownloads)
     {
-        var engines = new List<IScanEngine> { ClamAv, Yara, ThreatDatabase, Signatures };
+        var engines = new List<IScanEngine> { ClamAv, Yara, ThreatDatabase, Signatures, Amsi, HiddenScripts };
         if (Settings.HashLookups)
         {
             engines.Add(Hashes);
@@ -137,8 +159,41 @@ public sealed class AppServices : IDisposable
             : s with { AllowedHashes = [.. s.AllowedHashes, sha256] });
     }
 
+    /// <summary>
+    /// Puts the settings file back the way Agamemnon last wrote it (the settings lock) and
+    /// returns true when something else had changed it.
+    /// </summary>
+    public bool RestoreSettingsIfTampered()
+    {
+        lock (_settingsGate)
+        {
+            string? now = ReadSettingsFile();
+            if (now is null || LastSavedSettings is null || now == LastSavedSettings)
+            {
+                return false;
+            }
+
+            _settingsStore.Save(_settings);
+            LastSavedSettings = ReadSettingsFile();
+            return true;
+        }
+    }
+
+    private string? ReadSettingsFile()
+    {
+        try
+        {
+            return File.Exists(_settingsStore.Path) ? File.ReadAllText(_settingsStore.Path) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return LastSavedSettings;
+        }
+    }
+
     public void Dispose()
     {
+        Amsi.Dispose();
         Yara.Dispose();
         ThreatDatabase.Dispose();
         Http.Dispose();

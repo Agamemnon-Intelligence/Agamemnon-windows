@@ -117,6 +117,43 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <!-- 4.0: scan logs -->
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Content="{l:Tr scanlog.clear}" Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}"
+                                Visibility="{Binding HasLogs, Converter={StaticResource Visible}}" />
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr scanlog.title}" Margin="0" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr scanlog.hint}" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{l:Tr scanlog.empty}" Visibility="{Binding HasLogs, Converter={StaticResource CollapsedWhen}}" />
+                    <ItemsControl ItemsSource="{Binding Logs}" Style="{StaticResource PlainList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ScanLogRow}">
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Style="{StaticResource StatusDot}" VerticalAlignment="Top" Margin="0,5,10,0" Fill="{Binding Brush}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding Title}" />
+                                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding Detail}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Style="{StaticResource CaptionText}" Text="{Binding When}" Margin="12,2,12,0" />
+                                    <Button Grid.Column="3" Content="{l:Tr scanlog.export}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top"
+                                            Command="{Binding DataContext.ExportLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

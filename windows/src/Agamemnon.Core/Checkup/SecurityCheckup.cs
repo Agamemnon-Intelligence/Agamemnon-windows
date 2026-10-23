@@ -69,8 +69,6 @@ public sealed record SecuritySnapshot
 
     public bool? AutomaticUpdatesDisabledByPolicy { get; init; }
 
-    public bool? AutoRunDisabled { get; init; }
-
     public WifiSecurity Wifi { get; init; } = WifiSecurity.Unknown;
 
     public string? WifiName { get; init; }
@@ -115,7 +113,6 @@ public static class SecurityCheckup
             Inverted("remoteDesktop", s.RemoteDesktop, CheckState.Warning, "ms-settings:remotedesktop"),
             Inverted("smb1", s.Smb1, CheckState.Bad, "ms-settings:optionalfeatures"),
             Inverted("updates", s.AutomaticUpdatesDisabledByPolicy, CheckState.Bad, "ms-settings:windowsupdate"),
-            Flag("autorun", s.AutoRunDisabled, CheckState.Warning, "ms-settings:autoplay"),
             Wifi(s),
         };
         return checks;

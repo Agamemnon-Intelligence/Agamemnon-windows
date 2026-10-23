@@ -79,12 +79,16 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly TrayIcon _tray;
     private readonly Notifier _notifier;
 
-    public MainViewModel(AppServices services, TrayIcon tray, Notifier notifier, DownloadGuard downloads)
+    public MainViewModel(AppServices services, TrayIcon tray, Notifier notifier, DownloadGuard downloads, RealTimeGuards guards, UpdateService updates)
     {
         _services = services;
         _tray = tray;
         _notifier = notifier;
         Downloads = downloads;
+        Guards = guards;
+        Updates = updates;
+        RealTime = new ProtectionViewModel(services, guards);
+        Checkup = new CheckupViewModel(services, updates, this);
         Scan = new ScanViewModel(services, this);
         Dns = new DnsViewModel(services, this);
         DownloadsPage = new DownloadsViewModel(services, downloads);
@@ -99,6 +103,11 @@ public sealed partial class MainViewModel : ObservableObject
         services.SettingsChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(RefreshStatus);
         services.Quarantine.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(RefreshStatus);
         downloads.StateChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(RefreshStatus);
+        updates.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            Checkup.OnUpdatesChanged();
+            Dashboard.Refresh();
+        });
         RefreshStatus();
     }
 
@@ -119,6 +128,14 @@ public sealed partial class MainViewModel : ObservableObject
     public HelpViewModel Help { get; }
 
     public DownloadGuard Downloads { get; }
+
+    public RealTimeGuards Guards { get; }
+
+    public UpdateService Updates { get; }
+
+    public ProtectionViewModel RealTime { get; }
+
+    public CheckupViewModel Checkup { get; }
 
     /// <summary>Problems shown on the dashboard, each with its own Fix button.</summary>
     public ObservableCollection<ProblemViewModel> Problems { get; } = [];
@@ -171,6 +188,8 @@ public sealed partial class MainViewModel : ObservableObject
         NavigationTarget.Settings => Settings,
         NavigationTarget.About => About,
         NavigationTarget.Help => Help,
+        NavigationTarget.Protection => RealTime,
+        NavigationTarget.Checkup => Checkup,
         _ => Dashboard,
     };
 
@@ -197,6 +216,11 @@ public sealed partial class MainViewModel : ObservableObject
             DownloadsPage.IsEnabled = true;
         }
 
+        if (RealTimeOff)
+        {
+            RealTime.TurnEverythingOn();
+        }
+
         RefreshStatus();
     }
 
@@ -204,7 +228,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsEnglish));
         OnPropertyChanged(nameof(IsTurkish));
-        foreach (PageViewModel page in new PageViewModel[] { Dashboard, Scan, Dns, DownloadsPage, Quarantine, Settings, About, Help })
+        foreach (PageViewModel page in new PageViewModel[] { Dashboard, Scan, Dns, DownloadsPage, Quarantine, Settings, About, Help, RealTime, Checkup })
         {
             page.OnLanguageChanged();
         }
@@ -233,6 +257,22 @@ public sealed partial class MainViewModel : ObservableObject
         {
             problems.Add(new ProblemViewModel(ProtectionLevel.Warning, L.T("problem.downloads.title"), L.T("problem.downloads.detail"),
                 L.T("problem.turnOn"), () => DownloadsPage.IsEnabled = true));
+        }
+
+        if (RealTimeOff)
+        {
+            problems.Add(new ProblemViewModel(ProtectionLevel.Warning, L.T("problem.realtime.title"), L.T("problem.realtime.detail"),
+                L.T("problem.turnOn"), () =>
+                {
+                    RealTime.TurnEverythingOn();
+                    RefreshStatus();
+                }));
+        }
+
+        if (Checkup.ProblemCount > 0)
+        {
+            problems.Add(new ProblemViewModel(ProtectionLevel.Warning, L.F("problem.checkup.title", Checkup.ProblemCount), L.T("problem.checkup.detail"),
+                L.T("problem.checkup.fix"), () => Navigate(NavigationTarget.Checkup)));
         }
 
         if (!ScanEngineAvailable)
@@ -292,6 +332,38 @@ public sealed partial class MainViewModel : ObservableObject
             },
             Dns.IsProtecting,
             Dns.Summary));
+    }
+
+    /// <summary>The ransomware shield, on-access scanning or the paste guard is switched off.</summary>
+    public bool RealTimeOff => !_services.Settings.RansomwareShield || !_services.Settings.OnAccessScanning || !_services.Settings.PasteGuard;
+
+    /// <summary>
+    /// The Security Checkup a minute after start and then every six hours, so the dashboard
+    /// knows about weak settings; and the daily check for a new Agamemnon.
+    /// </summary>
+    public async Task RunPeriodicChecksAsync(CancellationToken cancellationToken)
+    {
+        TimeSpan wait = TimeSpan.FromMinutes(1);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(wait, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            wait = TimeSpan.FromHours(6);
+            await Application.Current.Dispatcher.InvokeAsync(() => Checkup.RunAsync()).Task.Unwrap().ConfigureAwait(false);
+            bool hadUpdate = Updates.Available is not null;
+            await Updates.CheckAsync(force: false, cancellationToken).ConfigureAwait(false);
+            if (!hadUpdate && Updates.Available is { } update)
+            {
+                _notifier.Show(NotificationLevel.Info, L.F("update.notification", update.Version.ToString(3)), L.T("update.notification.text"), NavigationTarget.Checkup);
+            }
+        }
     }
 
     /// <summary>
@@ -428,6 +500,13 @@ public sealed partial class MainViewModel : ObservableObject
 
             case ServiceEventKind.ElevationGranted when _services.Settings.AdminRightsAlerts:
                 _ = ReportElevationAsync(serviceEvent);
+                break;
+
+            case ServiceEventKind.TamperDetected:
+                string title = serviceEvent.TamperKind == "hosts" ? L.T("tamper.hosts.title") : L.T("tamper.exclusion.title");
+                string text = serviceEvent.TamperKind == "hosts" ? L.T("tamper.hosts.text") : L.T("tamper.exclusion.text");
+                _services.Activity.Add(new ActivityEntry(serviceEvent.At, ActivityKind.Tamper, ActivityLevel.Threat, title, serviceEvent.Detail));
+                _notifier.Show(NotificationLevel.Threat, title, text, NavigationTarget.Protection);
                 break;
 
             case ServiceEventKind.ServiceInstalled when _services.Settings.AdminRightsAlerts:

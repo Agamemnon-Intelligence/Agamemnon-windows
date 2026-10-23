@@ -146,6 +146,9 @@ public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController d
             case IpcMethods.GetCurrentNetwork:
                 return new CurrentNetwork(DnsController.CurrentWifi());
 
+            case IpcMethods.SecurityCheckup:
+                return await Task.Run(Agamemnon.Platform.Windows.SecuritySnapshotReader.Read, cancellationToken).ConfigureAwait(false);
+
             case IpcMethods.ApplyDns:
                 DnsSettings settings = request.Params?.Deserialize<DnsSettings>(IpcProtocol.Json)
                     ?? throw new IpcException("Missing DNS settings.");

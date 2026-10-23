@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace Agamemnon.App.ViewModels;
 
 /// <summary>
-/// The welcome guide, shown once after installing or upgrading to 3.0: pick a language, accept
+/// The welcome guide, shown once after installing or upgrading to 4.0: pick a language, accept
 /// the recommended protection with one click, and optionally run the first scan.
 /// </summary>
 public sealed partial class WelcomeViewModel : ObservableObject
@@ -31,6 +31,7 @@ public sealed partial class WelcomeViewModel : ObservableObject
         EncryptedDns = !upgrading || main.Dns.IsEnabled;
         AutomaticScans = !upgrading || settings.AutoScan != AutoScanFrequency.Off;
         SimpleMode = !upgrading || settings.SimpleMode;
+        RealTimeProtection = !upgrading || !main.RealTimeOff;
         ScanNow = settings.LastScanAt is null;
         Loc.Instance.LanguageChanged += OnLanguageChanged;
         main.Dns.PropertyChanged += OnDnsChanged;
@@ -104,6 +105,10 @@ public sealed partial class WelcomeViewModel : ObservableObject
     [ObservableProperty]
     public partial bool ScanNow { get; set; }
 
+    /// <summary>4.0: on-access scanning, the ransomware shield, the paste guard, USB protection and the other guards.</summary>
+    [ObservableProperty]
+    public partial bool RealTimeProtection { get; set; }
+
     public bool DnsAvailable => _main.Dns.ServiceReady;
 
     [RelayCommand]
@@ -114,6 +119,7 @@ public sealed partial class WelcomeViewModel : ObservableObject
         AdminRightsAlerts = true;
         EncryptedDns = DnsAvailable;
         AutomaticScans = true;
+        RealTimeProtection = true;
         Step = LastStep;
     }
 
@@ -151,7 +157,18 @@ public sealed partial class WelcomeViewModel : ObservableObject
                 : s.AutoScan == AutoScanFrequency.Off ? AutoScanFrequency.Weekly : s.AutoScan,
             SimpleMode = SimpleMode,
             WelcomeCompleted = true,
+            WelcomeVersion = CurrentWelcome,
         });
+        if (RealTimeProtection)
+        {
+            _main.RealTime.TurnEverythingOn();
+        }
+        else if (!_main.RealTimeOff)
+        {
+            _services.UpdateSettings(s => s with { OnAccessScanning = false, RansomwareShield = false, PasteGuard = false });
+            _main.Guards.Restart();
+        }
+
         AutoStart.Set(StartWithWindows);
         if (before.DownloadProtection != DownloadProtection)
         {
@@ -202,5 +219,8 @@ public sealed partial class WelcomeViewModel : ObservableObject
 
     /// <summary>Closing the window early still counts: the guide shouldn't come back at every start.</summary>
     public void Dismiss() =>
-        _services.UpdateSettings(s => s with { WelcomeCompleted = true, Language = Translations.Code(Loc.Instance.Language) });
+        _services.UpdateSettings(s => s with { WelcomeCompleted = true, WelcomeVersion = CurrentWelcome, Language = Translations.Code(Loc.Instance.Language) });
+
+    /// <summary>The guide is shown again after upgrading to a version with a newer one.</summary>
+    public const int CurrentWelcome = 4;
 }

@@ -62,6 +62,8 @@
                             <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.2}" Margin="0,2" />
                             <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.3}" Margin="0,2" />
                             <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.4}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.5}" Margin="0,2" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{l:Tr welcome.new.6}" Margin="0,2" />
                             <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.new.kept}" Margin="0,8,0,0" />
                         </StackPanel>
                     </Border>
@@ -83,6 +85,12 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.downloads}" />
                                     <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.downloads.detail}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding RealTimeProtection}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr welcome.setup.realtime}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr welcome.setup.realtime.detail}" />
                                 </StackPanel>
                             </CheckBox>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding EncryptedDns}" IsEnabled="{Binding DnsAvailable}" Margin="0,12,0,0">
