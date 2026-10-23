@@ -67,9 +67,62 @@ public sealed partial class FindingViewModel(FileScanResult result, ScanViewMode
     }
 }
 
+/// <summary>One row of the scan logs (4.0).</summary>
+public sealed record ScanLogRow(ScanLog Log)
+{
+    public string When => Log.FinishedAt.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+
+    public string Title => Log.Threats == 0 ? L.F("activity.scan.clean", ScanViewModel.KindName(Log.Kind)) : L.F("activity.scan.threats", ScanViewModel.KindName(Log.Kind), Log.Threats);
+
+    public string Detail => L.F("scanlog.detail", Log.FilesScanned, (Log.FinishedAt - Log.StartedAt).TotalMinutes, Log.Findings.Count)
+                            + (Log.Cancelled ? " · " + L.T("scan.summary.stopped") : string.Empty);
+
+    public Brush Brush => StatusBrushes.For(Log.Threats > 0 ? ProtectionLevel.Threat : ProtectionLevel.Protected);
+}
+
 public sealed partial class ScanViewModel(AppServices services, MainViewModel main) : PageViewModel
 {
     private CancellationTokenSource? _cancel;
+
+    /// <summary>The last scans, newest first.</summary>
+    public ObservableCollection<ScanLogRow> Logs { get; } = [];
+
+    public bool HasLogs => Logs.Count > 0;
+
+    public override void OnShown() => ReloadLogs();
+
+    private void ReloadLogs()
+    {
+        Logs.Clear();
+        foreach (ScanLog log in services.ScanLogs.Load())
+        {
+            Logs.Add(new ScanLogRow(log));
+        }
+
+        OnPropertyChanged(nameof(HasLogs));
+    }
+
+    [RelayCommand]
+    private static void ExportLog(ScanLogRow row)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = L.T("scanlog.export"),
+            FileName = $"Agamemnon scan {row.Log.FinishedAt.ToLocalTime():yyyy-MM-dd HHmm}.txt",
+            Filter = "Text|*.txt",
+        };
+        if (dialog.ShowDialog() == true)
+        {
+            File.WriteAllText(dialog.FileName, row.Log.ToText());
+        }
+    }
+
+    [RelayCommand]
+    private void ClearLogs()
+    {
+        services.ScanLogs.Clear();
+        ReloadLogs();
+    }
 
     public override NavigationTarget Target => NavigationTarget.Scan;
 
@@ -205,7 +258,33 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
             Path.GetTempPath(),
             Path.Combine(appData, "Microsoft", "Windows", "Start Menu", "Programs"),
         ];
-        return [.. candidates.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).Distinct(StringComparer.OrdinalIgnoreCase)];
+        return [.. candidates.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).Distinct(StringComparer.OrdinalIgnoreCase), .. RunningPrograms()];
+    }
+
+    /// <summary>4.0: quick scans also check every program that is running right now (outside Windows' own folder).</summary>
+    private static IEnumerable<string> RunningPrograms()
+    {
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows) + "\\";
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (System.Diagnostics.Process process in System.Diagnostics.Process.GetProcesses())
+        {
+            using (process)
+            {
+                string? path = null;
+                try
+                {
+                    path = process.MainModule?.FileName;
+                }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or NotSupportedException)
+                {
+                }
+
+                if (path is not null && !path.StartsWith(windows, StringComparison.OrdinalIgnoreCase) && seen.Add(path) && File.Exists(path))
+                {
+                    yield return path;
+                }
+            }
+        }
     }
 
     /// <summary>Runs a scan and shows its results; returns the number of threats found.</summary>
@@ -258,6 +337,15 @@ public sealed partial class ScanViewModel(AppServices services, MainViewModel ma
             Summary = report.Cancelled
                 ? L.T("scan.summary.stopped")
                 : threats == 0 ? L.T("scan.summary.clean") : L.F("scan.summary.threats", threats);
+            try
+            {
+                services.ScanLogs.Add(ScanLog.From(report, kind));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            ReloadLogs();
             if (!report.Cancelled)
             {
                 services.UpdateSettings(s => s with

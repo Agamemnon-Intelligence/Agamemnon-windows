@@ -36,6 +36,7 @@ else
     builder.Services.AddHostedService(sp => sp.GetRequiredService<DnsController>());
     builder.Services.AddHostedService<IpcServer>();
     builder.Services.AddHostedService<AlertsWorker>();
+    builder.Services.AddHostedService<TamperWatchWorker>();
 }
 
 await builder.Build().RunAsync();

@@ -35,6 +35,16 @@
                 </Grid>
             </Border>
 
+            <!-- 4.0: a newer Agamemnon is available -->
+            <Border Style="{StaticResource Card}" BorderBrush="{StaticResource StatusInfoBrush}"
+                    Visibility="{Binding UpdateAvailable, Converter={StaticResource Visible}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="{l:Tr update.show}" Command="{Binding OpenCommand}"
+                            CommandParameter="{x:Static svc:NavigationTarget.Checkup}" VerticalAlignment="Center" />
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding UpdateText}" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
             <!-- Problems, each with a button that fixes it -->
             <Border Style="{StaticResource Card}" BorderBrush="{StaticResource StatusWarningBrush}"
                     Visibility="{Binding HasProblems, Converter={StaticResource Visible}}">
@@ -84,6 +94,18 @@
                         <StackPanel>
                             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.dns}" />
                             <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.dns.detail}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding RansomwareShield}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.ransomware}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.ransomware.detail}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PasteGuard}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr dashboard.switch.paste}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr dashboard.switch.paste.detail}" />
                         </StackPanel>
                     </CheckBox>
                     <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AdminRightsAlerts}" Margin="0,14,0,0">

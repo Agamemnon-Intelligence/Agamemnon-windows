@@ -163,7 +163,35 @@ public sealed partial class WindowsTxtResolver : ISystemTxtResolver
 /// <summary>Name (SSID) of the Wi-Fi network this PC is connected to, via the native Wi-Fi API.</summary>
 public static partial class WifiNetwork
 {
-    public static string? CurrentSsid()
+    public static string? CurrentSsid() => Current()?.Ssid;
+
+    /// <summary>The current Wi-Fi network's encryption, for the Security Checkup.</summary>
+    public static (Agamemnon.Core.Checkup.WifiSecurity Security, string? Ssid) CurrentSecurity()
+    {
+        try
+        {
+            return Current() is { } c ? (Classify(c.SecurityEnabled, c.Auth, c.Cipher), c.Ssid) : (Agamemnon.Core.Checkup.WifiSecurity.NotConnected, null);
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return (Agamemnon.Core.Checkup.WifiSecurity.NotConnected, null);
+        }
+    }
+
+    /// <summary>DOT11_AUTH_ALGORITHM and DOT11_CIPHER_ALGORITHM values → how safe the network is.</summary>
+    internal static Agamemnon.Core.Checkup.WifiSecurity Classify(bool securityEnabled, int auth, int cipher) => auth switch
+    {
+        1 when !securityEnabled || cipher == 0 => Agamemnon.Core.Checkup.WifiSecurity.Open,
+        1 or 2 => Agamemnon.Core.Checkup.WifiSecurity.Wep,
+        3 or 4 or 5 => Agamemnon.Core.Checkup.WifiSecurity.Wpa,
+        6 or 7 => Agamemnon.Core.Checkup.WifiSecurity.Wpa2,
+        8 or 9 or 10 or 11 => Agamemnon.Core.Checkup.WifiSecurity.Wpa3,
+        _ => Agamemnon.Core.Checkup.WifiSecurity.Unknown,
+    };
+
+    private sealed record Connection(string Ssid, bool SecurityEnabled, int Auth, int Cipher);
+
+    private static Connection? Current()
     {
         if (WlanOpenHandle(2, IntPtr.Zero, out _, out IntPtr client) != 0)
         {
@@ -207,7 +235,15 @@ public static partial class WifiNetwork
 
                         byte[] ssid = new byte[length];
                         Marshal.Copy(attributes + 8 + 512 + 4, ssid, 0, length);
-                        return Encoding.UTF8.GetString(ssid);
+
+                        // Then the rest of WLAN_ASSOCIATION_ATTRIBUTES (ends at 588), then
+                        // WLAN_SECURITY_ATTRIBUTES: bSecurityEnabled, bOneXEnabled, auth, cipher.
+                        const int Security = 588;
+                        return new Connection(
+                            Encoding.UTF8.GetString(ssid),
+                            Marshal.ReadInt32(attributes, Security) != 0,
+                            Marshal.ReadInt32(attributes, Security + 8),
+                            Marshal.ReadInt32(attributes, Security + 12));
                     }
                     finally
                     {

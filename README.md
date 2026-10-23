@@ -9,9 +9,77 @@ Agamemnon is an open-source antivirus app created by **mertyesileducation** and 
 - archive and installer scanning
 - blocking unsafe downloads
 - **Turkish and English**, and a design anyone can use without computer knowledge (new in 3.0)
+- **real-time protection**: a ransomware shield, scanning files as they're saved, a paste-command guard, USB
+  protection, camera and microphone alerts, startup-item alerts and self-protection (new in 4.0)
+- a **Security Checkup** of Windows' own protection settings, and Microsoft Defender's engine as an extra
+  scan engine (new in 4.0)
 
 It also warns you when something gets administrator rights. It is released under the
 [GPL-2.0](LICENSE).
+
+## New in 4.0
+
+The biggest update yet. Most of it comes from the Mac app (Agamemnon for macOS 3.0 and 3.1), rebuilt
+for Windows.
+
+**Real-time protection** (new *Real-time protection* page, every guard has its own switch):
+
+- **Scan files as they're saved.** Programs, scripts, shortcuts, installers, archives, disk images and
+  macro documents saved anywhere in your user folder (and `C:\Users\Public`) are scanned within a couple
+  of seconds. Known malware goes straight to quarantine. Caches, `node_modules`, build output and package
+  folders are skipped.
+- **Ransomware shield.** Watches Documents, Desktop and Pictures (and folders you add). When 25 or more
+  files change within 15 seconds it looks closer: do they still start like real JPEGs, PDFs, Office files
+  and text? Did ten or more get the same new extension (`photo.jpg.locked`)? Did a ransom note appear?
+  Then it asks Windows' Restart Manager which programs have those files open. An **unsigned** culprit is
+  stopped and quarantined; a signed one is only named.
+- **Paste guard (ClickFix).** Fake "I'm not a robot", "fix this error" and fake-update pages tell people
+  to press Win+R and paste a command. Agamemnon looks at the shape of copied text (download-and-run
+  cradles, encoded PowerShell, `mshta` with a link, the "# I am not a robot" comment trick, `^` and
+  backtick tricks), warns you, and by default replaces the clipboard with a harmless warning. Official
+  installers fetched from their own sites (Chocolatey, Scoop, uv, Bun, Deno, rustup…) are left alone.
+- **USB protection.** When a USB drive or memory card is connected, its programs, scripts and archives
+  are scanned with every engine, and the tricks infected drives use are looked for: the user's files
+  hidden and replaced by a shortcut, programs named like documents, hidden programs at the top of the
+  drive, and `autorun.inf` files that start something. Infected drives are ejected (optional).
+- **Camera and microphone alerts.** Unlike macOS, Windows records *which* app uses them; Agamemnon tells
+  you when one starts (at most once per app every 30 minutes).
+- **Startup-item alerts.** Run keys, the Startup folders, Winlogon and scheduled tasks are compared every
+  minute; anything new is scanned and reported, and malware is quarantined.
+- **Self-protection.** The settings lock puts back Agamemnon's settings if another program edits them. The
+  service watches the **hosts file** (security and update sites blocked or redirected) and **Microsoft
+  Defender exclusions** (a classic way to hide malware) and alerts every signed-in user.
+
+**Security Checkup** (new page): Windows still supported (with the real end-of-support dates for Windows
+10 and each Windows 11 release, Home/Pro and Enterprise), Defender real-time protection and definitions,
+tamper protection, controlled folder access, SmartScreen, the firewall's three profiles, UAC, BitLocker,
+Secure Boot, memory integrity, LSA protection, Remote Desktop, SMBv1, automatic updates and the Wi-Fi
+network's encryption (open/WEP/WPA/WPA2/WPA3). The service reads them as SYSTEM; Agamemnon never changes
+them, each **Fix** button opens the right Windows Settings page. The page also lists **everything that
+starts with Windows** (with a check for hidden scripts, temporary folders and fake Windows names) and
+**programs with updates waiting** (from `winget`, with *Update all*).
+
+**Stronger scanning:**
+
+- **Microsoft Defender (AMSI)** joins as an engine: through Windows' Antimalware Scan Interface, Windows'
+  registered antivirus checks scripts, documents and programs up to 16 MB. This is the Windows
+  counterpart of the Mac app using Apple's XProtect rules.
+- **Hidden scripts.** A decoder undoes base64 (UTF-8 and PowerShell's UTF-16), gzip/deflate inside
+  base64, reversed strings, hex, `\xNN`/`%NN` escapes, split strings, `[char]` lists and `^`/backtick
+  tricks, up to three layers deep, then looks for hidden download-and-run commands.
+- **Quick scans also check every running program** outside the Windows folder.
+- **Scan logs.** The last 50 scans are kept on the Scan page and can be exported as text.
+
+**Everyday use:** *Scan with Agamemnon* on files and folders in File Explorer's right-click menu (on
+Windows 11 under *Show more options*); **automatic updates** (once a day, the setup is only downloaded from
+this repository's releases, must match the SHA-256 GitHub publishes and, for signed builds, be signed by
+the same publisher); dashboard switches for the ransomware shield and paste guard; the welcome guide is
+shown once more with a *Real-time protection* switch; new Help answers.
+
+### Upgrading from 3.0
+
+Run `Agamemnon-4.0.0-Setup.exe` or the `.msi` over 3.0 (no need to uninstall). Everything from 3.0 is kept;
+the new protections start switched on.
 
 ## New in 3.0
 
@@ -47,14 +115,19 @@ network's DNS as it stops, and the new one switches encrypted DNS back on as soo
 
 ## Türkçe: hızlı başlangıç
 
-1. `Agamemnon-3.0.0-Setup.exe` dosyasını çalıştırın ve Windows'un sorduğu izni onaylayın.
-   Bilgisayarınızda 2.0 sürümü kuruluysa önce kaldırmanıza gerek yok: 3.0 onun üzerine kurulur,
+1. `Agamemnon-4.0.0-Setup.exe` dosyasını çalıştırın ve Windows'un sorduğu izni onaylayın.
+   Bilgisayarınızda eski bir sürüm kuruluysa önce kaldırmanıza gerek yok: 4.0 onun üzerine kurulur,
    ayarlarınız ve karantinanız korunur.
 2. Açılan karşılama rehberinde **Türkçe**'yi seçin, ardından **Önerilen ayarları kullan** düğmesine
    basın.
 3. Hepsi bu. Saatin yanındaki kalkan **yeşilse** korunuyorsunuz. **Turuncu** veya **kırmızı** olursa
    Agamemnon'u açın: Ana sayfa sorunu sade bir dille anlatır ve yanında onu düzelten bir düğme
    gösterir.
+
+**4.0'da yeni:** fidye yazılımı kalkanı, kaydedilen dosyaların anında taranması, sahte "Ben robot
+değilim" komutlarına karşı yapıştırma koruması, USB koruması, kamera/mikrofon uyarıları, Windows ile
+başlayan programlar için uyarılar ve Windows'un kendi koruma ayarlarını kontrol eden **Güvenlik kontrolü**
+sayfası. Bunların hepsi **Gerçek zamanlı koruma** sayfasından tek tek açılıp kapatılabilir.
 
 Dili istediğiniz zaman sol menünün altındaki **English / Türkçe** düğmeleriyle değiştirebilirsiniz.
 Sorularınız için uygulamadaki **Yardım** sayfasına bakın.
@@ -82,6 +155,10 @@ the Mac app** (`design/`; the Mac app is
 | | Nested up to 3 levels. Also flags archive bombs, password-protected archives that contain programs, and disguised names (`invoice.pdf.exe`, right-to-left override). | |
 | **Unsafe downloads** | Watches Downloads (plus folders you add). Each file is scanned once the browser finishes writing it, and threats go straight to the encrypted quarantine. | same |
 | | Optionally blocks unsigned programs from the internet, and files from hosts on abuse.ch's URLhaus list (read from the file's Mark-of-the-Web). | |
+| **Real-time protection (4.0)** | On-access scanning of files saved in the user folder, the ransomware shield (type checks, mass renames, ransom notes; culprit found with the Restart Manager), paste guard, USB drive checks and eject, camera/microphone alerts, startup-item alerts, settings lock. | same (FSEvents, Endpoint Security, IOKit) |
+| | Hosts-file and Defender-exclusion tamper alerts from the service. | settings lock, helper watchdog |
+| **Security Checkup (4.0)** | Windows support dates, Defender, tamper protection, controlled folder access, SmartScreen, firewall, UAC, BitLocker, Secure Boot, memory integrity, LSA protection, RDP, SMBv1, updates, Wi-Fi encryption; startup items; winget updates; Agamemnon's own updates. | FileVault, firewall, Gatekeeper, SIP… |
+| **Extra engines (4.0)** | Microsoft Defender through AMSI; a script decoder for hidden commands. | Apple XProtect rules; deobfuscator |
 | **Admin-rights warnings** | Notifies you when a program is elevated by UAC (prompt or silent auto-elevation) or installs a system service. The alert says who signed it and whether it is known malware. Windows' own components are not reported. | authorization-request alerts |
 
 ## Shared design tokens
@@ -177,7 +254,7 @@ Requirements: .NET 10 SDK. The installer additionally needs Windows.
 ```sh
 cd windows
 dotnet build Agamemnon.Windows.slnx        # builds on Windows, macOS and Linux
-dotnet test tests/Agamemnon.Core.Tests     # 114 tests
+dotnet test tests/Agamemnon.Core.Tests     # 181 tests
 python3 rules/test_rules.py                # pip install yara-python
 ```
 
@@ -188,7 +265,7 @@ On Windows:
 ```powershell
 $env:AGAMEMNON_SIGN_PFX = 'C:\path\codesign.pfx'
 $env:AGAMEMNON_SIGN_PASSWORD = '…'
-./windows/build/package.ps1 -Version 3.0.0
+./windows/build/package.ps1 -Version 4.0.0
 ```
 
 The script:
@@ -232,6 +309,13 @@ the new hash.
   auto-elevations and new services.
 - **Download blocking and alerts need `Agamemnon.exe` running.** It starts with Windows by
   default; turn this off in Settings. Each Windows user starts it once from the Start menu.
+- **The 4.0 guards react just after something happens, not before.** Blocking a file or program before
+  it runs needs a kernel driver signed through Microsoft's antimalware programme. The ransomware shield
+  acts within seconds, so a few files may already be damaged: keep File History or OneDrive backups, and
+  consider turning on Defender's *controlled folder access* (the Security Checkup shows it). The shield can
+  only name a program that still has the files open.
+- **The AMSI engine uses whichever antivirus is registered with Windows.** When Defender finds something
+  through it, Defender's own history may also list it.
 - **Wi-Fi rules need the network name.** On Windows 11 24H2 and later, Windows may only reveal it
   when location services are allowed.
 - **Captive portals** (hotel or café sign-in pages) usually need their own DNS. Add those networks

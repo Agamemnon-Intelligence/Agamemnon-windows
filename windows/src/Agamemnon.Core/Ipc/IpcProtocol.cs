@@ -72,6 +72,9 @@ public static class IpcMethods
     public const string ApplyDns = "dns.apply";
     public const string GetCurrentNetwork = "network.current";
     public const string Subscribe = "subscribe";
+
+    /// <summary>4.0: the raw values for the Security Checkup, read by the service as SYSTEM.</summary>
+    public const string SecurityCheckup = "checkup.snapshot";
 }
 
 public sealed record IpcRequest(string Method, JsonElement? Params = null);
@@ -127,6 +130,9 @@ public enum ServiceEventKind
     ServiceInstalled,
 
     DnsStatusChanged,
+
+    /// <summary>4.0: something changed a protection setting behind Agamemnon's back (hosts file, Defender exclusions).</summary>
+    TamperDetected,
 }
 
 public sealed record ServiceEvent
@@ -151,6 +157,11 @@ public sealed record ServiceEvent
     public string? ParentName { get; init; }
 
     public DnsStatus? Dns { get; init; }
+
+    /// <summary>For <see cref="ServiceEventKind.TamperDetected"/>: what changed ("hosts" or "defender-exclusion").</summary>
+    public string? TamperKind { get; init; }
+
+    public string? Detail { get; init; }
 }
 
 /// <summary>Request/response client for the service pipe.</summary>

@@ -1,0 +1,131 @@
+<UserControl x:Class="Agamemnon.App.Views.CheckupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Agamemnon.App.ViewModels"
+             xmlns:l="clr-namespace:Agamemnon.App.Localization">
+    <!-- 4.0: Windows' own protection settings, startup items and updates. Agamemnon only reads them. -->
+    <ScrollViewer Style="{StaticResource Page}">
+        <StackPanel MaxWidth="980" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleText}" Text="{l:Tr checkup.title}" />
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,20" Text="{l:Tr checkup.intro}" />
+
+            <!-- Agamemnon's own update -->
+            <Border Style="{StaticResource Card}" BorderBrush="{StaticResource StatusInfoBrush}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="{l:Tr update.install}" Command="{Binding InstallUpdateCommand}" Margin="0,0,8,0"
+                                Visibility="{Binding UpdateAvailable, Converter={StaticResource Visible}}" />
+                        <Button Content="{l:Tr update.notes}" Style="{StaticResource SecondaryButton}" Command="{Binding OpenReleasePageCommand}" Margin="0,0,8,0"
+                                Visibility="{Binding UpdateAvailable, Converter={StaticResource Visible}}" />
+                        <Button Content="{l:Tr update.check}" Style="{StaticResource SecondaryButton}" Command="{Binding CheckAgamemnonUpdateCommand}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SubheadingText}" Text="{Binding UpdateText}" Margin="0" />
+                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding UpdateMessage}" Margin="0,4,0,0"
+                                   Visibility="{Binding UpdateMessage, Converter={StaticResource VisibleWhen}}" />
+                        <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding CheckForUpdates}" Margin="0,10,0,0">
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr update.automatic}" />
+                        </CheckBox>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Windows settings -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="{l:Tr checkup.run}" Command="{Binding RunCommand}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Style="{StaticResource StatusDot}" Fill="{Binding SummaryBrush}" />
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{Binding Summary}" Margin="0" />
+                        </StackPanel>
+                    </DockPanel>
+                    <ProgressBar IsIndeterminate="True" Margin="0,0,0,8" Visibility="{Binding IsRunning, Converter={StaticResource Visible}}" />
+                    <ItemsControl ItemsSource="{Binding Checks}" Style="{StaticResource PlainList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CheckRow}">
+                                <Grid Margin="0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Style="{StaticResource StatusDot}" VerticalAlignment="Top" Margin="0,6,10,0" Fill="{Binding Brush}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold">
+                                            <Run Text="{Binding Title, Mode=OneWay}" /> <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}" /> <Run Text="{Binding StateText, Mode=OneWay}" Foreground="{Binding Brush, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Advice}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="{l:Tr checkup.fix}" Command="{Binding FixCommand}" Style="{StaticResource SecondaryButton}"
+                                            VerticalAlignment="Center" Margin="12,0,0,0" Visibility="{Binding CanFix, Converter={StaticResource Visible}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Startup items -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr checkup.startup.title}" />
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{Binding StartupSummary}" Margin="0,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding StartupItems}" Style="{StaticResource PlainList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:StartupRow}">
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Style="{StaticResource StatusDot}" VerticalAlignment="Top" Margin="0,5,10,0" Fill="{Binding Brush}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold">
+                                            <Run Text="{Binding Name, Mode=OneWay}" /> <Run Text="{Binding Where, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Normal" />
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding Command}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding Finding}" Foreground="{StaticResource StatusWarningBrush}"
+                                                   Visibility="{Binding HasFinding, Converter={StaticResource Visible}}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                                        <Button Content="{l:Tr finding.show}" Style="{StaticResource SecondaryButton}" Command="{Binding RevealCommand}" Margin="0,0,8,0" />
+                                        <Button Content="{l:Tr finding.trust}" Style="{StaticResource SecondaryButton}" Command="{Binding TrustCommand}"
+                                                Visibility="{Binding HasFinding, Converter={StaticResource Visible}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Other software -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="{l:Tr checkup.software.check}" Style="{StaticResource SecondaryButton}" Command="{Binding CheckSoftwareCommand}" Margin="0,0,8,0" />
+                            <Button Content="{l:Tr checkup.software.updateAll}" Style="{StaticResource SecondaryButton}" Command="{Binding UpdateAllSoftwareCommand}" Margin="0,0,8,0"
+                                    Visibility="{Binding SoftwareUpdates.Count, Converter={StaticResource VisibleWhen}}" />
+                            <Button Content="{l:Tr checkup.software.windowsUpdate}" Style="{StaticResource SecondaryButton}" Command="{Binding OpenWindowsUpdateCommand}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr checkup.software.title}" Margin="0" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{Binding SoftwareSummary}" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                    <ProgressBar IsIndeterminate="True" Margin="0,0,0,8" Visibility="{Binding CheckingSoftware, Converter={StaticResource Visible}}" />
+                    <ItemsControl ItemsSource="{Binding SoftwareUpdates}" Style="{StaticResource PlainList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource BodyText}" Text="{Binding}" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

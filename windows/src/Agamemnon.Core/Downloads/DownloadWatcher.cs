@@ -22,14 +22,21 @@ public sealed class DownloadWatcher : IDisposable
     private readonly Timer _timer;
     private int _polling;
 
-    public DownloadWatcher(IEnumerable<string> folders, TimeSpan? settleTime = null)
+    private readonly Func<string, bool>? _filter;
+
+    /// <param name="folders">Folders to watch.</param>
+    /// <param name="settleTime">How long a file must stay unchanged before it counts as finished.</param>
+    /// <param name="includeSubdirectories">Also watch every folder inside (on-access scanning of the user's folder).</param>
+    /// <param name="filter">Only report files this accepts (e.g. programs and scripts); null reports everything.</param>
+    public DownloadWatcher(IEnumerable<string> folders, TimeSpan? settleTime = null, bool includeSubdirectories = false, Func<string, bool>? filter = null)
     {
         _settle = settleTime ?? TimeSpan.FromSeconds(2);
+        _filter = filter;
         foreach (string folder in folders.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists))
         {
             var watcher = new FileSystemWatcher(folder)
             {
-                IncludeSubdirectories = false,
+                IncludeSubdirectories = includeSubdirectories,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.LastWrite,
                 InternalBufferSize = 64 * 1024,
             };
@@ -69,7 +76,7 @@ public sealed class DownloadWatcher : IDisposable
 
     private void Track(string path)
     {
-        if (!IsPartialDownload(path))
+        if (!IsPartialDownload(path) && (_filter is null || _filter(path)))
         {
             _pending[path] = DateTimeOffset.UtcNow;
         }
