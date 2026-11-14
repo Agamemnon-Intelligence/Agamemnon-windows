@@ -117,25 +117,40 @@ public sealed class CodeSignatureEngine(ISignatureVerifier verifier) : IScanEngi
         string.IsNullOrEmpty(publisher) ? text : $"Signed by “{publisher}”. {text}";
 }
 
-/// <summary>Flags files whose Mark-of-the-Web says they came from a known malware-distribution host.</summary>
-public sealed class DownloadSourceEngine(IHostBlocklist blocklist) : IScanEngine
+/// <summary>
+/// Where a download came from (its Mark-of-the-Web): a known malware host (URLhaus), or, from
+/// 5.0, a fake copy of a well-known site (see <see cref="Web.LinkInspector"/>).
+/// </summary>
+public sealed class DownloadSourceEngine(IHostBlocklist blocklist, Func<bool>? checkLookalikes = null) : IScanEngine
 {
     public string Name => "Download source";
 
     public Task<EngineStatus> GetStatusAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(blocklist.Count == 0
+        Task.FromResult(blocklist.Count == 0 && checkLookalikes?.Invoke() != true
             ? new EngineStatus(false, "Malware host list not downloaded yet.")
             : new EngineStatus(true, $"{blocklist.Count:N0} known malware hosts (URLhaus)"));
 
     public Task<IReadOnlyList<EngineResult>> ScanAsync(IReadOnlyList<ScanTarget> batch, CancellationToken cancellationToken)
     {
+        bool lookalikes = checkLookalikes?.Invoke() == true;
         IReadOnlyList<EngineResult> results = [.. batch.Select(target =>
         {
             foreach (string? url in new[] { target.Origin?.HostUrl, target.Origin?.ReferrerUrl })
             {
-                if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) && blocklist.IsBlocked(uri.IdnHost))
+                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || uri.Scheme is not ("http" or "https"))
+                {
+                    continue;
+                }
+
+                if (blocklist.Count > 0 && blocklist.IsBlocked(uri.IdnHost))
                 {
                     return new EngineResult([new Detection("Download source", "Downloaded from a known malware site", Severity.Malicious, uri.Host)]);
+                }
+
+                if (lookalikes && Web.LinkInspector.InspectUri(uri).Reasons.FirstOrDefault(r => r.Risk == Web.LinkRisk.Dangerous) is { } fake)
+                {
+                    return new EngineResult([new Detection("Download source", "Downloaded from a fake copy of a well-known site", Severity.Suspicious,
+                        fake.Value is { } brand ? $"{uri.Host} (imitates {brand})" : uri.Host)]);
                 }
             }
 

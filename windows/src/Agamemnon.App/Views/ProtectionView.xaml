@@ -20,6 +20,45 @@
                         </StackPanel>
                     </CheckBox>
                     <TextBlock Style="{StaticResource CaptionText}" Text="{Binding OnAccessText}" Margin="52,4,0,0" />
+                    <!-- 5.0 -->
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding SmartAnalysis}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr protection.smart}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr protection.smart.detail}" />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+            </Border>
+
+            <!-- 5.0: web protection and the link checker -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SubheadingText}" Text="{l:Tr web.title}" />
+                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding WebProtection}" Margin="0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr web.switch}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr web.switch.detail}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{l:Tr web.check.title}" Margin="0,16,0,2" />
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{l:Tr web.check.detail}" Margin="0,0,0,8" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{l:Tr web.check.button}" Command="{Binding CheckLinkCommand}" Margin="10,0,0,0" IsDefault="True" />
+                        <TextBox Text="{Binding LinkText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" />
+                    </DockPanel>
+                    <Border Margin="0,12,0,0" Padding="12" CornerRadius="8" BorderThickness="1" BorderBrush="{Binding LinkBrush}"
+                            Visibility="{Binding HasLinkResult, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Foreground="{Binding LinkBrush}" Text="{Binding LinkHeadline}" />
+                            <ItemsControl ItemsSource="{Binding LinkReasons}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding}" Margin="0,2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 

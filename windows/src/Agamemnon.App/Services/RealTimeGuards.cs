@@ -45,6 +45,7 @@ public sealed partial class RealTimeGuards : IDisposable
     private IReadOnlyList<StartupItem>? _startupBaseline;
     private int _slowTicks;
     private int _analysing;
+    private string? _lastLinkText;
 
     public RealTimeGuards(AppServices services, Notifier notifier)
     {
@@ -305,6 +306,14 @@ public sealed partial class RealTimeGuards : IDisposable
         }
 
         _ransomware.MarkIncident();
+
+        // 5.0: remember the damaged files so the Recovery page can bring them back from a restore point.
+        _services.SaveIncident(new Agamemnon.Core.Recovery.RansomwareIncident
+        {
+            At = DateTimeOffset.Now,
+            Files = [.. paths.Distinct(StringComparer.OrdinalIgnoreCase).Take(Agamemnon.Core.Recovery.RansomwareIncident.MaxFiles)],
+            AddedExtension = verdict.Sign == RansomwareSign.MassRenamed ? verdict.Extension : null,
+        });
         string[] existing = [.. paths.Where(File.Exists).Take(64)];
         var stopped = new List<string>();
         string? culprit = null;
@@ -347,7 +356,7 @@ public sealed partial class RealTimeGuards : IDisposable
             : culprit is not null ? L.F("protection.ransomware.signed", Path.GetFileName(culprit))
             : L.T("protection.ransomware.unknown");
         Log(ActivityKind.Ransomware, ActivityLevel.Threat, L.T("protection.ransomware.title"), $"{what} {outcome}");
-        _notifier.Show(NotificationLevel.Threat, L.T("protection.ransomware.title"), $"{what} {outcome}", NavigationTarget.Protection);
+        _notifier.Show(NotificationLevel.Threat, L.T("protection.ransomware.title"), $"{what} {outcome} {L.T("recovery.incident.notification")}", NavigationTarget.Recovery);
     }
 
     private static byte[]? ReadHead(string path)
@@ -516,6 +525,7 @@ public sealed partial class RealTimeGuards : IDisposable
 
         if (ClipboardCommandGuard.Assess(text) is not { } danger)
         {
+            CheckCopiedLinks(text);
             return;
         }
 
@@ -544,6 +554,31 @@ public sealed partial class RealTimeGuards : IDisposable
         Log(ActivityKind.Paste, ActivityLevel.Threat, L.T("protection.paste.title"), preview);
         _notifier.Show(NotificationLevel.Threat, L.T("protection.paste.title"),
             L.F("protection.paste.text", reason) + (cleared ? " " + L.T("protection.paste.cleared") : string.Empty), NavigationTarget.Protection);
+    }
+
+    /// <summary>5.0 web protection: a copied link to a fake bank, shop or sign-in page gets a warning.</summary>
+    private void CheckCopiedLinks(string? text)
+    {
+        if (!_services.Settings.WebProtection || text is null || text == _lastLinkText)
+        {
+            return;
+        }
+
+        _lastLinkText = text;
+        foreach (string link in Agamemnon.Core.Web.LinkInspector.FindLinks(text).Take(10))
+        {
+            Agamemnon.Core.Web.LinkVerdict verdict = Agamemnon.Core.Web.LinkInspector.Inspect(link, _services.MalwareHosts);
+            if (verdict.Risk != Agamemnon.Core.Web.LinkRisk.Dangerous)
+            {
+                continue;
+            }
+
+            Agamemnon.Core.Web.LinkReason reason = verdict.Reasons.First(r => r.Risk == Agamemnon.Core.Web.LinkRisk.Dangerous);
+            string why = L.F($"web.reason.{reason.Id}", reason.Value ?? string.Empty);
+            Log(ActivityKind.Web, ActivityLevel.Warning, L.F("web.copied.title", verdict.Host), $"{why} {link}");
+            _notifier.Show(NotificationLevel.Warning, L.F("web.copied.title", verdict.Host), why + " " + L.T("web.copied.text"), NavigationTarget.Protection);
+            return;
+        }
     }
 
     // ---- Settings lock ----

@@ -102,6 +102,14 @@ public sealed record AppSettings
     /// <summary>Startup items the user chose to trust (<see cref="Startup.StartupItem.Key"/>).</summary>
     public IReadOnlyList<string> TrustedStartupItems { get; init; } = [];
 
+    // 5.0
+
+    /// <summary>Checks how unknown, unsigned programs are built (packed or hidden code) during every scan.</summary>
+    public bool SmartAnalysis { get; init; } = true;
+
+    /// <summary>Warns about fake copies of well-known sites in copied links and download sources.</summary>
+    public bool WebProtection { get; init; } = true;
+
     /// <summary>The newest version whose welcome guide was shown (0 before 4.0).</summary>
     public int WelcomeVersion { get; init; }
 }

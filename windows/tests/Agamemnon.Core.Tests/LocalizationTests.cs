@@ -133,7 +133,7 @@ public partial class TranslationTests
     [GeneratedRegex(@"\{l:Tr ([\w.]+)\}")]
     private static partial Regex XamlKey();
 
-    [GeneratedRegex(@"""((?:about|activity|admin|app|autoScan|checkup|common|dashboard|dns|downloads|finding|help|nav|problem|protection|quarantine|scan|scanlog|settings|status|tamper|tray|update|welcome)\.[\w.]+)(?<!\.json)""")]
+    [GeneratedRegex(@"""((?:about|activity|admin|app|autoScan|checkup|common|dashboard|dns|downloads|finding|help|nav|problem|protection|quarantine|recovery|scan|scanlog|score|settings|status|tamper|tray|update|web|welcome)\.[\w.]+)(?<!\.json)""")]
     private static partial Regex CodeKey();
 }
 

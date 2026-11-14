@@ -21,6 +21,12 @@ public static partial class Translations
         {
             Table.Add(key, text);
         }
+
+        // 5.0 adds its own texts and replaces the welcome guide's "what's new" lines.
+        foreach ((string key, (string En, string Tr) text) in Table50)
+        {
+            Table[key] = text;
+        }
     }
 
     public static IReadOnlyDictionary<string, (string En, string Tr)> All => Table;

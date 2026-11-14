@@ -21,6 +21,9 @@ public enum NavigationTarget
     // 4.0
     Protection,
     Checkup,
+
+    // 5.0
+    Recovery,
 }
 
 public enum NotificationLevel

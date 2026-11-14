@@ -1,8 +1,10 @@
 using System.Net.Http;
 using Agamemnon.Core.Archives;
+using Agamemnon.Core.Heuristics;
 using Agamemnon.Core.Intelligence;
 using Agamemnon.Core.Ipc;
 using Agamemnon.Core.Quarantine;
+using Agamemnon.Core.Recovery;
 using Agamemnon.Core.Reputation;
 using Agamemnon.Core.Scanning;
 using Agamemnon.Core.Settings;
@@ -16,6 +18,7 @@ public sealed class AppServices : IDisposable
 {
     private readonly JsonFileStore<AppSettings> _settingsStore = new(Path.Combine(AgamemnonPaths.UserSettings, "settings.json"));
     private readonly Lock _settingsGate = new();
+    private readonly JsonFileStore<RansomwareIncident> _incidentStore;
     private AppSettings _settings;
 
     public AppServices()
@@ -50,13 +53,15 @@ public sealed class AppServices : IDisposable
         HiddenScripts = new HiddenScriptEngine();
         ScanLogs = new ScanHistory(Path.Combine(AgamemnonPaths.UserLocalData, "scan-logs.json"));
         Updates = new AgamemnonUpdateChecker(Http);
-        DownloadSource = new DownloadSourceEngine(MalwareHosts);
+        DownloadSource = new DownloadSourceEngine(MalwareHosts, () => Settings.WebProtection);
+        SmartAnalysis = new HeuristicEngine(new AuthenticodeVerifier(), () => Settings.SmartAnalysis);
+        _incidentStore = new JsonFileStore<RansomwareIncident>(Path.Combine(AgamemnonPaths.UserLocalData, "ransomware-incident.json"));
         Expander = ArchiveExpander.CreateDefault([new MsiExtractor(), new CabExtractor()]);
         Service = new IpcClient(verifyServer: PipeServerCheck.IsService);
     }
 
     public static string Version =>
-        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "4.0.0";
+        typeof(AppServices).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "5.0.0";
 
     public event EventHandler? SettingsChanged;
 
@@ -90,6 +95,21 @@ public sealed class AppServices : IDisposable
     public HiddenScriptEngine HiddenScripts { get; }
 
     public ScanHistory ScanLogs { get; }
+
+    /// <summary>5.0: the smart analysis of unknown programs.</summary>
+    public HeuristicEngine SmartAnalysis { get; }
+
+    /// <summary>5.0: the files the ransomware shield last saw damaged, so the Recovery page can put them back.</summary>
+    public RansomwareIncident? LastIncident
+    {
+        get
+        {
+            RansomwareIncident incident = _incidentStore.Load();
+            return incident.Files.Count > 0 ? incident : null;
+        }
+    }
+
+    public void SaveIncident(RansomwareIncident? incident) => _incidentStore.Save(incident ?? new RansomwareIncident());
 
     public AgamemnonUpdateChecker Updates { get; }
 
@@ -127,13 +147,13 @@ public sealed class AppServices : IDisposable
 
     public ScanCoordinator CreateScanner(bool forDownloads)
     {
-        var engines = new List<IScanEngine> { ClamAv, Yara, ThreatDatabase, Signatures, Amsi, HiddenScripts };
+        var engines = new List<IScanEngine> { ClamAv, Yara, ThreatDatabase, Signatures, Amsi, HiddenScripts, SmartAnalysis };
         if (Settings.HashLookups)
         {
             engines.Add(Hashes);
         }
 
-        if (forDownloads && Settings.CheckDownloadSource)
+        if (forDownloads && (Settings.CheckDownloadSource || Settings.WebProtection))
         {
             engines.Add(DownloadSource);
         }

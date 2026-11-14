@@ -13,9 +13,74 @@ Agamemnon is an open-source antivirus app created by **mertyesileducation** and 
   protection, camera and microphone alerts, startup-item alerts and self-protection (new in 4.0)
 - a **Security Checkup** of Windows' own protection settings, and Microsoft Defender's engine as an extra
   scan engine (new in 4.0)
+- **smart analysis** of unknown programs, **web protection** against fake bank, shop and sign-in sites, a
+  **link checker**, **ransomware recovery** from daily restore points and a **protection score** (new in 5.0)
 
 It also warns you when something gets administrator rights. It is released under the
 [GPL-2.0](LICENSE).
+
+## New in 5.0
+
+Agamemnon 5.0 goes beyond recognising malware that is already known. It looks at how unknown programs are
+built, warns about fake websites before you type a password into them, and can give you your files back after
+a ransomware attack.
+
+**Smart analysis** (new engine, switch under *Real-time protection → Files*): every scan also looks at how an
+unsigned Windows program is built, so brand-new malware that no signature or hash list knows yet can still be
+flagged. It reads the program's layout without running it: packer sections (UPX, MPRESS, Themida, VMProtect…),
+code that is compressed or encrypted (entropy), code that can rewrite itself (writable and executable), code that
+only appears at run time, an entry point outside the code, an import table that hides which Windows functions
+the program uses, garbled section names, no version information and large appended data. Each finding adds
+points; from 60 out of 100 the program is reported as *suspicious*, with the reasons spelled out. It is a
+hand-tuned, explainable score, not a trained model. On its own it never says "malicious"; programs signed by a
+trusted publisher are never flagged, and .NET programs (built differently) are not scored.
+
+**Web protection** (new card on *Real-time protection*):
+
+- **Fake websites.** Links are checked against about 40 well-known sites (Turkish banks, e-Devlet, PTT, shops,
+  delivery companies, sign-in pages): look-alike letters and digits (`paypa1.com`, `rnicrosoft.com`), one letter
+  changed, added or swapped (`amazom.com`), the brand plus scam words (`garanti-giris.com`, `dhl-kargo.info`),
+  the brand only at the start (`paypal.com.account-check.top`), Cyrillic or Greek letters mixed into a Latin
+  name, and a disguised start (`https://www.paypal.com@evil.example/`). Shortened links, bare IP addresses,
+  endings used mostly by scam sites (`.zip`, `.top`, `.xyz`…) and unencrypted sign-in pages get a "be careful".
+  Known malware hosts (URLhaus) are dangerous. Everything is checked on the PC; no link is sent anywhere.
+- **Copied links.** Copy a link to a fake site (from a text message, an e-mail, a chat) and Agamemnon warns you
+  before you open it, alongside the paste guard.
+- **Downloads.** A file downloaded from a fake copy of a well-known site (read from its Mark-of-the-Web) is
+  reported as suspicious.
+- **Check a link.** Paste any link and press *Check* for a plain-words verdict and the reasons.
+
+**Ransomware recovery** (new *Recovery* page):
+
+- The service has Windows take a **restore point** (volume shadow copy) of the system drive every day, keeps
+  Agamemnon's last 7 and never deletes Windows' own. *Create one now* takes one on demand (at most every 10
+  minutes).
+- **Earlier copies of any file:** choose a file, or type where it was, to see its copies in every restore point,
+  and restore one. It goes next to the original as `Report (restored 2026-11-13).docx`; nothing is overwritten.
+- **After a ransomware attack:** the ransomware shield now remembers the damaged files, and the Recovery page
+  offers *Restore them all*: each file comes back from the newest restore point taken before the attack
+  (renamed files such as `photo.jpg.locked` go back to `photo.jpg`).
+- **Safe by design:** before handing anything over, the service (SYSTEM) checks the caller's own permissions on
+  the file *in the restore point* with Windows' `AccessCheck`, so nobody gets a copy of a file they couldn't
+  open. It copies into a new folder under `%ProgramData%\Agamemnon\Recovery` that only SYSTEM and the caller can
+  open (removed after an hour), never into a folder the caller chose, so links and junctions can't redirect it.
+  The app, running as you, then copies the file into place.
+
+**Protection score** (dashboard): one number from 0 to 100 built from eleven layers (scanner, threat database,
+downloads, real-time scanning, ransomware shield, paste guard, smart analysis, web protection, encrypted DNS, a
+recent restore point, a scan this week). Weak Windows settings found by the Security Checkup take up to 20
+points off, and a threat still on the PC caps the score at 40. Below the score the dashboard names the most
+valuable thing to turn on next.
+
+**Also:** the welcome guide is shown once more with 5.0's news; new Help answers (getting files back after
+ransomware, checking a link, "built like malware", the protection score); *Fix all* and the welcome guide's
+*Real-time protection* switch now also turn on smart analysis and web protection.
+
+### Upgrading from 4.0
+
+Run `Agamemnon-5.0.0-Setup.exe` or the `.msi` over 4.0 (no need to uninstall). Everything from 4.0 is kept.
+Smart analysis and web protection start switched on, and the first restore point is taken a few minutes after
+the new service starts.
 
 ## New in 4.0
 
@@ -115,14 +180,20 @@ network's DNS as it stops, and the new one switches encrypted DNS back on as soo
 
 ## Türkçe: hızlı başlangıç
 
-1. `Agamemnon-4.0.0-Setup.exe` dosyasını çalıştırın ve Windows'un sorduğu izni onaylayın.
-   Bilgisayarınızda eski bir sürüm kuruluysa önce kaldırmanıza gerek yok: 4.0 onun üzerine kurulur,
+1. `Agamemnon-5.0.0-Setup.exe` dosyasını çalıştırın ve Windows'un sorduğu izni onaylayın.
+   Bilgisayarınızda eski bir sürüm kuruluysa önce kaldırmanıza gerek yok: 5.0 onun üzerine kurulur,
    ayarlarınız ve karantinanız korunur.
 2. Açılan karşılama rehberinde **Türkçe**'yi seçin, ardından **Önerilen ayarları kullan** düğmesine
    basın.
 3. Hepsi bu. Saatin yanındaki kalkan **yeşilse** korunuyorsunuz. **Turuncu** veya **kırmızı** olursa
    Agamemnon'u açın: Ana sayfa sorunu sade bir dille anlatır ve yanında onu düzelten bir düğme
    gösterir.
+
+**5.0'da yeni:** henüz hiçbir listede olmayan programları nasıl yapıldıklarına bakarak yakalayan
+**akıllı analiz**; sahte banka, alışveriş, kargo ve e-Devlet sitelerine karşı **web koruması** ve SMS'ten gelen
+bir bağlantıyı açmadan önce yapıştırıp kontrol edebileceğiniz **bağlantı kontrolü**; her gün alınan geri yükleme
+noktalarıyla fidye yazılımının bozduğu dosyaları geri getiren **Kurtarma** sayfası; ana sayfada 0-100 arası
+**koruma puanı** ve onu artırmak için sonraki adım.
 
 **4.0'da yeni:** fidye yazılımı kalkanı, kaydedilen dosyaların anında taranması, sahte "Ben robot
 değilim" komutlarına karşı yapıştırma koruması, USB koruması, kamera/mikrofon uyarıları, Windows ile
@@ -159,6 +230,10 @@ the Mac app** (`design/`; the Mac app is
 | | Hosts-file and Defender-exclusion tamper alerts from the service. | settings lock, helper watchdog |
 | **Security Checkup (4.0)** | Windows support dates, Defender, tamper protection, controlled folder access, SmartScreen, firewall, UAC, BitLocker, Secure Boot, memory integrity, LSA protection, RDP, SMBv1, updates, Wi-Fi encryption; startup items; winget updates; Agamemnon's own updates. | FileVault, firewall, Gatekeeper, SIP… |
 | **Extra engines (4.0)** | Microsoft Defender through AMSI; a script decoder for hidden commands. | Apple XProtect rules; deobfuscator |
+| **Smart analysis (5.0)** | An explainable score of how unsigned programs are built: packers, encrypted or self-modifying code, hidden imports, odd entry points, no version info. Only ever "suspicious"; signed programs are skipped. | |
+| **Web protection (5.0)** | Fake copies of about 40 well-known sites (look-alike letters, typos, brand plus scam words, brand only at the start, mixed alphabets, disguised starts), known malware hosts, shortened links, risky endings. Covers copied links, download sources and a link checker. | |
+| **Ransomware recovery (5.0)** | Daily restore points (volume shadow copies) taken by the service; earlier copies of any file the caller may read; "Restore them all" after the ransomware shield stepped in. | |
+| **Protection score (5.0)** | 0–100 from eleven layers, minus weak Windows settings, capped while a threat remains. | |
 | **Admin-rights warnings** | Notifies you when a program is elevated by UAC (prompt or silent auto-elevation) or installs a system service. The alert says who signed it and whether it is known malware. Windows' own components are not reported. | authorization-request alerts |
 
 ## Shared design tokens
@@ -194,8 +269,9 @@ Agamemnon.exe (WPF, runs as you)            Agamemnon service (LocalSystem)
   ├─ UI + notification-area icon      pipe    ├─ applies encrypted DNS, Wi-Fi rules, exclusions
   ├─ scanning (ClamAV, YARA, hashes,  ◄────►  ├─ local DoH/DoT resolver when needed
   │   signatures, archives)                   └─ administrator-rights monitor
-  ├─ download watcher
-  ├─ offline threat database lookups        AgamemnonScanEngine service (LocalService)
+  ├─ download watcher                         └─ 5.0: daily restore points and earlier
+  ├─ offline threat database lookups              copies of files (after an AccessCheck)
+  │                                         AgamemnonScanEngine service (LocalService)
   └─ encrypted per-user quarantine            ├─ clamd on 127.0.0.1:3310 + freshclam updates
                                               └─ downloads VirusShare + MalwareBazaar hash lists
                                                  into %ProgramData%\Agamemnon\ThreatIntel
@@ -203,7 +279,7 @@ Agamemnon.exe (WPF, runs as you)            Agamemnon service (LocalSystem)
 
 | Project | Contents |
 |---|---|
-| `windows/src/Agamemnon.Core` | Platform-neutral logic, unit-tested on any OS: DNS presets/rules, DoH/DoT/forwarder, leak test, scan engines and coordinator, offline threat database and feed updater, archive expansion, quarantine store, download watcher, IPC contract. |
+| `windows/src/Agamemnon.Core` | Platform-neutral logic, unit-tested on any OS: DNS presets/rules, DoH/DoT/forwarder, leak test, scan engines and coordinator, offline threat database and feed updater, archive expansion, quarantine store, download watcher, IPC contract; in 5.0 the PE reader and smart analysis (`Heuristics`), the link inspector (`Web`), the recovery planner (`Recovery`) and the protection score. |
 | `windows/src/Agamemnon.Platform.Windows` | Authenticode and catalog verification, Mark-of-the-Web, DPAPI, `DnsQuery`, Wi-Fi name, MSI/CAB extraction, Windows DNS configuration, the elevation monitor. |
 | `windows/src/Agamemnon.Service` | One executable for both Windows services, plus `--restore-dns` (run on uninstall). |
 | `windows/src/Agamemnon.App` | The WPF app. Text comes from `Agamemnon.Core/Localization` (English and Turkish side by side); the tests check every key the app uses exists in both languages with matching placeholders. |
@@ -254,7 +330,7 @@ Requirements: .NET 10 SDK. The installer additionally needs Windows.
 ```sh
 cd windows
 dotnet build Agamemnon.Windows.slnx        # builds on Windows, macOS and Linux
-dotnet test tests/Agamemnon.Core.Tests     # 181 tests
+dotnet test tests/Agamemnon.Core.Tests     # 247 tests
 python3 rules/test_rules.py                # pip install yara-python
 ```
 
@@ -265,7 +341,7 @@ On Windows:
 ```powershell
 $env:AGAMEMNON_SIGN_PFX = 'C:\path\codesign.pfx'
 $env:AGAMEMNON_SIGN_PASSWORD = '…'
-./windows/build/package.ps1 -Version 4.0.0
+./windows/build/package.ps1 -Version 5.0.0
 ```
 
 The script:
@@ -314,6 +390,15 @@ the new hash.
   acts within seconds, so a few files may already be damaged: keep File History or OneDrive backups, and
   consider turning on Defender's *controlled folder access* (the Security Checkup shows it). The shield can
   only name a program that still has the files open.
+- **Smart analysis can be wrong both ways.** Some small, honest free tools are packed the way malware is, so
+  they may be reported as suspicious (never quarantined automatically). Malware that is built normally won't
+  be noticed by this engine, only by the others.
+- **A restore point is not a backup.** Windows decides how much disk space restore points may use and may drop
+  old ones. They live on the same drive, so a failing disk loses them too, and some ransomware deletes them
+  first. Keep File History or OneDrive as well. Restore points need the Volume Shadow Copy service and an NTFS
+  system drive.
+- **Web protection only knows the sites on its list.** A fake copy of a site that isn't one of the brands it
+  knows is only caught if it is on URLhaus or uses one of the general tricks (disguised start, mixed alphabets…).
 - **The AMSI engine uses whichever antivirus is registered with Windows.** When Defender finds something
   through it, Defender's own history may also list it.
 - **Wi-Fi rules need the network name.** On Windows 11 24H2 and later, Windows may only reveal it
