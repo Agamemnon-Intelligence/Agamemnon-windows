@@ -35,6 +35,41 @@
                 </Grid>
             </Border>
 
+            <!-- 5.0: the protection score -->
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="84" Height="84" Margin="0,0,20,0" VerticalAlignment="Top">
+                        <Ellipse Stroke="{Binding ScoreBrush}" StrokeThickness="6" Opacity="0.9" />
+                        <TextBlock Text="{Binding ScoreValue}" FontSize="28" FontWeight="SemiBold" Foreground="{Binding ScoreBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource SubheadingText}" Margin="0">
+                            <Run Text="{Binding ScoreTitle, Mode=OneWay}" /> <Run Text="·" /> <Run Text="{Binding ScoreGrade, Mode=OneWay}" Foreground="{Binding ScoreBrush}" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ScoreNextStep}" Margin="0,4,0,10" />
+                        <ItemsControl ItemsSource="{Binding ScoreLayers}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ScoreLayerRow}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,18,2">
+                                        <TextBlock Style="{StaticResource IconText}" Text="{Binding Mark}" Foreground="{Binding Brush}"
+                                                   FontSize="{StaticResource FontSizeCaption}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Style="{StaticResource CaptionText}" Text="{Binding Name}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- 4.0: a newer Agamemnon is available -->
             <Border Style="{StaticResource Card}" BorderBrush="{StaticResource StatusInfoBrush}"
                     Visibility="{Binding UpdateAvailable, Converter={StaticResource Visible}}">

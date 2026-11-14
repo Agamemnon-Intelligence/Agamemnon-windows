@@ -23,7 +23,7 @@ public sealed partial class ProtectionViewModel : PageViewModel
     private static readonly HashSet<ActivityKind> Kinds =
     [
         ActivityKind.RealTime, ActivityKind.Ransomware, ActivityKind.Usb, ActivityKind.Paste, ActivityKind.Privacy,
-        ActivityKind.Startup, ActivityKind.Tamper, ActivityKind.AdminRights,
+        ActivityKind.Startup, ActivityKind.Tamper, ActivityKind.AdminRights, ActivityKind.Web,
     ];
 
     private readonly AppServices _services;
@@ -68,6 +68,50 @@ public sealed partial class ProtectionViewModel : PageViewModel
 
     public bool SettingsLock { get => _services.Settings.SettingsLock; set => Set(s => s with { SettingsLock = value }); }
 
+    // 5.0: smart analysis and web protection.
+
+    public bool SmartAnalysis { get => _services.Settings.SmartAnalysis; set => Set(s => s with { SmartAnalysis = value }); }
+
+    public bool WebProtection { get => _services.Settings.WebProtection; set => Set(s => s with { WebProtection = value }); }
+
+    [ObservableProperty]
+    public partial string LinkText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLinkResult), nameof(LinkHeadline), nameof(LinkReasons), nameof(LinkBrush))]
+    public partial Agamemnon.Core.Web.LinkVerdict? LinkResult { get; set; }
+
+    public bool HasLinkResult => LinkResult is not null;
+
+    public string LinkHeadline => LinkResult is { } r ? L.F($"web.result.{r.Risk.ToString().ToLowerInvariant()}", r.Host) : string.Empty;
+
+    public IReadOnlyList<string> LinkReasons => LinkResult is { } r
+        ? r.Reasons.Count == 0 ? [L.T("web.reason.none")] : [.. r.Reasons.Select(reason => "•  " + L.F($"web.reason.{reason.Id}", reason.Value ?? string.Empty))]
+        : [];
+
+    public Brush LinkBrush => LinkResult?.Risk switch
+    {
+        Agamemnon.Core.Web.LinkRisk.Dangerous => StatusBrushes.For(ProtectionLevel.Threat),
+        Agamemnon.Core.Web.LinkRisk.Caution => StatusBrushes.For(ProtectionLevel.Warning),
+        _ => StatusBrushes.For(ProtectionLevel.Protected),
+    };
+
+    [RelayCommand]
+    private void CheckLink()
+    {
+        if (string.IsNullOrWhiteSpace(LinkText))
+        {
+            return;
+        }
+
+        LinkResult = Agamemnon.Core.Web.LinkInspector.Inspect(LinkText, _services.MalwareHosts);
+        if (LinkResult.Risk == Agamemnon.Core.Web.LinkRisk.Dangerous)
+        {
+            _services.Activity.Add(new ActivityEntry(DateTimeOffset.Now, ActivityKind.Web, ActivityLevel.Warning,
+                L.F("web.result.dangerous", LinkResult.Host), LinkText.Trim()));
+        }
+    }
+
     public override void OnShown()
     {
         Folders.Clear();
@@ -83,7 +127,7 @@ public sealed partial class ProtectionViewModel : PageViewModel
     public void TurnEverythingOn() => Set(s => s with
     {
         OnAccessScanning = true, RansomwareShield = true, PasteGuard = true, UsbProtection = true, PrivacyAlerts = true,
-        StartupAlerts = true, SettingsLock = true,
+        StartupAlerts = true, SettingsLock = true, SmartAnalysis = true, WebProtection = true,
     });
 
     private void Set(Func<AppSettings, AppSettings> change)

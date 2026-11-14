@@ -75,7 +75,29 @@ public static class IpcMethods
 
     /// <summary>4.0: the raw values for the Security Checkup, read by the service as SYSTEM.</summary>
     public const string SecurityCheckup = "checkup.snapshot";
+
+    /// <summary>5.0: the restore points (volume shadow copies) on this PC.</summary>
+    public const string RecoveryList = "recovery.list";
+
+    /// <summary>5.0: take a restore point of the system drive now (at most every ten minutes).</summary>
+    public const string RecoveryCreate = "recovery.create";
+
+    /// <summary>5.0: earlier copies of one file the caller is allowed to read.</summary>
+    public const string RecoveryVersions = "recovery.versions";
+
+    /// <summary>5.0: copy one earlier copy to a folder only the caller can open, for the app to put back.</summary>
+    public const string RecoveryFetch = "recovery.fetch";
 }
+
+/// <summary>5.0: the restore points and when the next daily one is due.</summary>
+public sealed record RecoveryStatus(IReadOnlyList<Agamemnon.Core.Recovery.RestorePoint> Points, string? LastError = null);
+
+public sealed record RecoveryVersionsRequest(string Path);
+
+public sealed record RecoveryFetchRequest(string Path, string PointId);
+
+/// <summary>The earlier copy, in a temporary folder readable only by the caller (removed after an hour).</summary>
+public sealed record RecoveryFetchResult(string TempPath);
 
 public sealed record IpcRequest(string Method, JsonElement? Params = null);
 

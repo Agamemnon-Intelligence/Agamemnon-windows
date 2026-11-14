@@ -21,6 +21,10 @@ public enum ActivityKind
     Privacy,
     Startup,
     Tamper,
+
+    // 5.0
+    Web,
+    Recovery,
 }
 
 public enum ActivityLevel

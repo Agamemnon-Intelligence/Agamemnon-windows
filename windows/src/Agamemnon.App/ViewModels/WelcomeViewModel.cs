@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace Agamemnon.App.ViewModels;
 
 /// <summary>
-/// The welcome guide, shown once after installing or upgrading to 4.0: pick a language, accept
+/// The welcome guide, shown once after installing or upgrading to 5.0: pick a language, accept
 /// the recommended protection with one click, and optionally run the first scan.
 /// </summary>
 public sealed partial class WelcomeViewModel : ObservableObject
@@ -222,5 +222,5 @@ public sealed partial class WelcomeViewModel : ObservableObject
         _services.UpdateSettings(s => s with { WelcomeCompleted = true, WelcomeVersion = CurrentWelcome, Language = Translations.Code(Loc.Instance.Language) });
 
     /// <summary>The guide is shown again after upgrading to a version with a newer one.</summary>
-    public const int CurrentWelcome = 4;
+    public const int CurrentWelcome = 5;
 }

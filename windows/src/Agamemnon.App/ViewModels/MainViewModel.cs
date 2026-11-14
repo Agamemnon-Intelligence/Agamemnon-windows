@@ -89,6 +89,8 @@ public sealed partial class MainViewModel : ObservableObject
         Updates = updates;
         RealTime = new ProtectionViewModel(services, guards);
         Checkup = new CheckupViewModel(services, updates, this);
+        Recovery = new RecoveryViewModel(services);
+        Recovery.PointsChanged += (_, _) => Dashboard?.Refresh();
         Scan = new ScanViewModel(services, this);
         Dns = new DnsViewModel(services, this);
         DownloadsPage = new DownloadsViewModel(services, downloads);
@@ -136,6 +138,9 @@ public sealed partial class MainViewModel : ObservableObject
     public ProtectionViewModel RealTime { get; }
 
     public CheckupViewModel Checkup { get; }
+
+    /// <summary>5.0: restore points and earlier copies of files.</summary>
+    public RecoveryViewModel Recovery { get; }
 
     /// <summary>Problems shown on the dashboard, each with its own Fix button.</summary>
     public ObservableCollection<ProblemViewModel> Problems { get; } = [];
@@ -190,6 +195,7 @@ public sealed partial class MainViewModel : ObservableObject
         NavigationTarget.Help => Help,
         NavigationTarget.Protection => RealTime,
         NavigationTarget.Checkup => Checkup,
+        NavigationTarget.Recovery => Recovery,
         _ => Dashboard,
     };
 
@@ -228,7 +234,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsEnglish));
         OnPropertyChanged(nameof(IsTurkish));
-        foreach (PageViewModel page in new PageViewModel[] { Dashboard, Scan, Dns, DownloadsPage, Quarantine, Settings, About, Help, RealTime, Checkup })
+        foreach (PageViewModel page in new PageViewModel[] { Dashboard, Scan, Dns, DownloadsPage, Quarantine, Settings, About, Help, RealTime, Checkup, Recovery })
         {
             page.OnLanguageChanged();
         }
@@ -334,6 +340,31 @@ public sealed partial class MainViewModel : ObservableObject
             Dns.Summary));
     }
 
+    /// <summary>5.0: the protection score, from every layer that is on.</summary>
+    public Agamemnon.Core.Protection.ProtectionScoreResult Score
+    {
+        get
+        {
+            Agamemnon.Core.Settings.AppSettings settings = _services.Settings;
+            return Agamemnon.Core.Protection.ProtectionScore.Compute(new Agamemnon.Core.Protection.ProtectionInputs
+            {
+                ScanEngine = ScanEngineAvailable,
+                ThreatDatabaseComplete = Dashboard?.Coverage is { MeetsGoal: true },
+                DownloadProtection = settings.DownloadProtection,
+                OnAccessScanning = settings.OnAccessScanning,
+                RansomwareShield = settings.RansomwareShield,
+                PasteGuard = settings.PasteGuard,
+                SmartAnalysis = settings.SmartAnalysis,
+                WebProtection = settings.WebProtection,
+                EncryptedDns = Dns.IsProtecting,
+                RecentRestorePoint = Recovery.HasRecentPoint,
+                ScannedRecently = settings.LastScanAt is { } last && DateTimeOffset.Now - last < TimeSpan.FromDays(8),
+                CheckupProblems = Checkup.ProblemCount,
+                UnresolvedThreats = Scan.UnresolvedThreats,
+            });
+        }
+    }
+
     /// <summary>The ransomware shield, on-access scanning or the paste guard is switched off.</summary>
     public bool RealTimeOff => !_services.Settings.RansomwareShield || !_services.Settings.OnAccessScanning || !_services.Settings.PasteGuard;
 
@@ -357,6 +388,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             wait = TimeSpan.FromHours(6);
             await Application.Current.Dispatcher.InvokeAsync(() => Checkup.RunAsync()).Task.Unwrap().ConfigureAwait(false);
+            await Application.Current.Dispatcher.InvokeAsync(() => Recovery.RefreshAsync()).Task.Unwrap().ConfigureAwait(false);
             bool hadUpdate = Updates.Available is not null;
             await Updates.CheckAsync(force: false, cancellationToken).ConfigureAwait(false);
             if (!hadUpdate && Updates.Available is { } update)

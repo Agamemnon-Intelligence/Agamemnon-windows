@@ -11,6 +11,14 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Agamemnon.App.ViewModels;
 
+/// <summary>One protection layer on the dashboard's score card.</summary>
+public sealed record ScoreLayerRow(string Name, bool On)
+{
+    public Brush Brush => On ? StatusBrushes.For(ProtectionLevel.Protected) : StatusBrushes.Neutral;
+
+    public string Mark => On ? "\uE73E" : "\uE711";
+}
+
 public sealed partial class DashboardViewModel : PageViewModel
 {
     private const int RecentCount = 8;
@@ -123,6 +131,22 @@ public sealed partial class DashboardViewModel : PageViewModel
             next <= DateTimeOffset.Now ? L.T("dashboard.autoScan.soon") : next.ToLocalTime().ToString("g", CultureInfo.CurrentCulture))
         : L.T("dashboard.autoScan.off");
 
+    // 5.0: the protection score.
+
+    public int ScoreValue => _main.Score.Score;
+
+    public string ScoreTitle => L.F("score.title", _main.Score.Score);
+
+    public string ScoreGrade => L.T($"score.grade.{_main.Score.Grade}");
+
+    public Brush ScoreBrush => StatusBrushes.For(_main.Score.Score >= 85 ? ProtectionLevel.Protected : _main.Score.Score >= 60 ? ProtectionLevel.Warning : ProtectionLevel.Threat);
+
+    public string ScoreNextStep => _main.Score.NextStep is { } next
+        ? L.F("score.next", L.T($"score.layer.{next.Id}"), next.Weight)
+        : L.T("score.allOn");
+
+    public IReadOnlyList<ScoreLayerRow> ScoreLayers => [.. _main.Score.Layers.Select(l => new ScoreLayerRow(L.T($"score.layer.{l.Id}"), l.On))];
+
     public string QuarantineTitle => L.F("dashboard.quarantine.count", _services.Quarantine.List().Count);
 
     public void Refresh()
@@ -145,6 +169,12 @@ public sealed partial class DashboardViewModel : PageViewModel
         OnPropertyChanged(nameof(UpdateText));
         OnPropertyChanged(nameof(HasProblems));
         OnPropertyChanged(nameof(CanFixAll));
+        OnPropertyChanged(nameof(ScoreValue));
+        OnPropertyChanged(nameof(ScoreTitle));
+        OnPropertyChanged(nameof(ScoreGrade));
+        OnPropertyChanged(nameof(ScoreBrush));
+        OnPropertyChanged(nameof(ScoreNextStep));
+        OnPropertyChanged(nameof(ScoreLayers));
     }
 
     private static string SourceKind(string what) => what switch

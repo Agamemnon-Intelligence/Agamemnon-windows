@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Agamemnon.Core.Dns;
 using Agamemnon.Core.Ipc;
+using Agamemnon.Platform.Windows;
 
 namespace Agamemnon.Service;
 
@@ -57,7 +58,7 @@ public sealed class EventHub
 /// are denied by the pipe's ACL). Custom DNS servers can redirect every lookup on the PC, so they
 /// require an elevated administrator; presets can be chosen by any signed-in user.
 /// </summary>
-public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController dns, EventHub events) : BackgroundService
+public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController dns, EventHub events, RecoveryWorker recovery) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -122,7 +123,8 @@ public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController d
                     object? result = await HandleAsync(pipe, request, stoppingToken).ConfigureAwait(false);
                     response = new IpcResponse(true, result is null ? null : JsonSerializer.SerializeToElement(result, IpcProtocol.Json));
                 }
-                catch (Exception ex) when (ex is IpcException or DnsConfigurationException or JsonException or UnauthorizedAccessException)
+                catch (Exception ex) when (ex is IpcException or DnsConfigurationException or JsonException or UnauthorizedAccessException
+                                           or IOException or System.Management.ManagementException or System.Runtime.InteropServices.COMException)
                 {
                     response = new IpcResponse(false, Error: ex.Message);
                 }
@@ -149,6 +151,28 @@ public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController d
             case IpcMethods.SecurityCheckup:
                 return await Task.Run(Agamemnon.Platform.Windows.SecuritySnapshotReader.Read, cancellationToken).ConfigureAwait(false);
 
+            case IpcMethods.RecoveryList:
+                return await Task.Run(recovery.Status, cancellationToken).ConfigureAwait(false);
+
+            case IpcMethods.RecoveryCreate:
+                return await Task.Run(() => recovery.Create(manual: true), cancellationToken).ConfigureAwait(false);
+
+            case IpcMethods.RecoveryVersions:
+            {
+                RecoveryVersionsRequest query = request.Params?.Deserialize<RecoveryVersionsRequest>(IpcProtocol.Json)
+                    ?? throw new IpcException("Missing file.");
+                using PipeCaller caller = Caller(pipe);
+                return await Task.Run(() => recovery.Versions(query.Path, caller), cancellationToken).ConfigureAwait(false);
+            }
+
+            case IpcMethods.RecoveryFetch:
+            {
+                RecoveryFetchRequest fetch = request.Params?.Deserialize<RecoveryFetchRequest>(IpcProtocol.Json)
+                    ?? throw new IpcException("Missing file.");
+                using PipeCaller caller = Caller(pipe);
+                return await Task.Run(() => recovery.Fetch(fetch, caller), cancellationToken).ConfigureAwait(false);
+            }
+
             case IpcMethods.ApplyDns:
                 DnsSettings settings = request.Params?.Deserialize<DnsSettings>(IpcProtocol.Json)
                     ?? throw new IpcException("Missing DNS settings.");
@@ -162,6 +186,18 @@ public sealed partial class IpcServer(ILogger<IpcServer> logger, DnsController d
             default:
                 throw new IpcException($"Unknown request '{request.Method}'.");
         }
+    }
+
+    /// <summary>The caller's identity (identification level: enough to check permissions, not to act as them).</summary>
+    private static PipeCaller Caller(NamedPipeServerStream pipe)
+    {
+        WindowsIdentity? copy = null;
+        pipe.RunAsClient(() =>
+        {
+            using WindowsIdentity current = WindowsIdentity.GetCurrent(TokenAccessLevels.Query | TokenAccessLevels.Duplicate);
+            copy = new WindowsIdentity(current.Token);
+        });
+        return new PipeCaller(copy ?? throw new UnauthorizedAccessException("Couldn't tell who is asking."));
     }
 
     private static bool CallerIsElevatedAdministrator(NamedPipeServerStream pipe)

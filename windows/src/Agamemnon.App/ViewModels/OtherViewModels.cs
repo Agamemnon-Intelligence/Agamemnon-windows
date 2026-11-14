@@ -494,9 +494,13 @@ public sealed partial class HelpViewModel(MainViewModel main) : PageViewModel
     [
         new(L.T("help.q.safe"), L.T("help.a.safe")),
         new(L.T("help.q.threat"), L.T("help.a.threat")),
+        new(L.T("help.q.recovery"), L.T("help.a.recovery")),
+        new(L.T("help.q.link"), L.T("help.a.link")),
         new(L.T("help.q.paste"), L.T("help.a.paste")),
         new(L.T("help.q.ransomware"), L.T("help.a.ransomware")),
         new(L.T("help.q.checkup"), L.T("help.a.checkup")),
+        new(L.T("help.q.smart"), L.T("help.a.smart")),
+        new(L.T("help.q.score"), L.T("help.a.score")),
         new(L.T("help.q.quarantine"), L.T("help.a.quarantine")),
         new(L.T("help.q.restore"), L.T("help.a.restore")),
         new(L.T("help.q.scan"), L.T("help.a.scan")),

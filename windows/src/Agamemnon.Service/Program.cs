@@ -37,6 +37,8 @@ else
     builder.Services.AddHostedService<IpcServer>();
     builder.Services.AddHostedService<AlertsWorker>();
     builder.Services.AddHostedService<TamperWatchWorker>();
+    builder.Services.AddSingleton<RecoveryWorker>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<RecoveryWorker>());
 }
 
 await builder.Build().RunAsync();
